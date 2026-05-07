@@ -475,6 +475,17 @@ function physicsStep() {
     if (hovered !== null) { hovered = null; updateCursor(); }
   }
 
+  // Smooth scroll zoom
+  if (Math.abs(zoomVelocity) > 0.0001) {
+    const minZ = getMinZoom();
+    const nz = Math.min(8, Math.max(minZ, zoom * (1 + zoomVelocity)));
+    panX = zoomCX - (zoomCX - panX) * (nz / zoom);
+    panY = zoomCY - (zoomCY - panY) * (nz / zoom);
+    zoom = nz;
+    zoomVelocity *= ZOOM_DAMPING;
+    updateZoomButtons();
+  }
+
   draw();
   updateMobileFocus();
   rafId = requestAnimationFrame(physicsStep);
@@ -622,11 +633,54 @@ function applyZoom(delta, cx, cy) {
   waveTime=performance.now()/1000;
   updateZoomButtons();
 }
-canvas.addEventListener('wheel',e=>{e.preventDefault();applyZoom(e.deltaY,e.clientX,e.clientY);},{passive:false});
 
-// Zoom buttons
-document.getElementById('btn-zoom-in').addEventListener('click', ()=>{ applyZoom(-1,W/2,H/2); });
-document.getElementById('btn-zoom-out').addEventListener('click', ()=>{ applyZoom(1,W/2,H/2); });
+// Smooth animated zoom for buttons – ease in-out
+function smoothZoom(delta, cx, cy) {
+  const minZ = getMinZoom();
+  const f    = delta > 0 ? 0.87 : 1.15;
+  const targetZoom = Math.min(8, Math.max(minZ, zoom * f));
+  const startZoom  = zoom;
+  const startPX    = panX;
+  const startPY    = panY;
+  const targetPX   = cx - (cx - panX) * (targetZoom / zoom);
+  const targetPY   = cy - (cy - panY) * (targetZoom / zoom);
+  const startT     = performance.now();
+  const DUR        = 380;
+
+  function step() {
+    const t  = Math.min(1, (performance.now() - startT) / DUR);
+    const e2 = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // easeInOut
+    zoom = startZoom + (targetZoom - startZoom) * e2;
+    panX = startPX  + (targetPX  - startPX)  * e2;
+    panY = startPY  + (targetPY  - startPY)  * e2;
+    if (t < 1) requestAnimationFrame(step);
+    else {
+      zoom = targetZoom; panX = targetPX; panY = targetPY;
+      const [wx,wy] = s2w(cx,cy);
+      waveOriginX=wx; waveOriginY=wy;
+      waveTime=performance.now()/1000;
+      updateZoomButtons();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+// Scroll zoom – velocity based for smooth feel
+let zoomVelocity = 0;
+let zoomCX = 0, zoomCY = 0;
+const ZOOM_DAMPING = 0.78;
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f = e.deltaY > 0 ? 0.013 : -0.013;
+  zoomVelocity += f;
+  zoomCX = e.clientX;
+  zoomCY = e.clientY;
+}, { passive: false });
+
+// Zoom buttons use smooth animated zoom
+document.getElementById('btn-zoom-in').addEventListener('click', ()=>{ smoothZoom(-1,W/2,H/2); });
+document.getElementById('btn-zoom-out').addEventListener('click', ()=>{ smoothZoom(1,W/2,H/2); });
 
 // ─── MOBILE CENTER PROXIMITY REVEAL ──────────────────────────────────────────
 const MOBILE_REVEAL_R = 130; // screen pixels from center
