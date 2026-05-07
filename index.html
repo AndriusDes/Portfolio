@@ -82,6 +82,10 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 #panel-year { font-size:11px; color:rgba(255,255,255,0.38); letter-spacing:0.22em; margin-bottom:32px; }
 #panel-line { height:1px; background:rgba(255,255,255,0.1); margin-bottom:32px; }
 #panel-body { font-size:14px; line-height:1.85; color:rgba(255,255,255,0.72); letter-spacing:0.01em; }
+#panel-body strong { color:rgba(255,255,255,0.95); font-weight:600; }
+#panel-body em { font-style:italic; color:rgba(255,255,255,0.8); }
+#panel-body code { font-family:'Courier New',monospace; font-size:11px; background:rgba(255,255,255,0.08); padding:2px 5px; border-radius:3px; }
+#panel-body br + br { display:block; margin-top:10px; content:''; }
 #panel-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:32px; }
 #panel-tags span { font-size:10px; letter-spacing:0.18em; text-transform:uppercase; border:1px solid rgba(255,255,255,0.18); padding:6px 12px; color:rgba(255,255,255,0.48); }
 #panel-media { margin-top:28px; display:flex; flex-direction:column; gap:14px; }
@@ -830,7 +834,7 @@ function renderPanel(d) {
   document.getElementById('pc-label').textContent=d.category;
   document.getElementById('panel-title').textContent=d.title;
   document.getElementById('panel-year').textContent=d.year;
-  document.getElementById('panel-body').textContent=d.body;
+  document.getElementById('panel-body').innerHTML = d.body || '';
   document.getElementById('panel-tags').innerHTML=d.tags.map(t=>`<span>${t}</span>`).join('');
   const media=document.getElementById('panel-media');
   let mh='';
