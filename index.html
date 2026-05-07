@@ -88,7 +88,38 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 #panel-media img { width:100%; border-radius:6px; display:block; cursor:zoom-in; }
 #panel-media iframe { border-radius:10px; display:block; }
 
-/* Lightbox */
+/* Loader */
+#loader {
+  position:fixed; inset:0; z-index:200;
+  background:#080808;
+  display:flex; align-items:center; justify-content:center;
+  transition:opacity 0.5s;
+}
+#loader.hidden { opacity:0; pointer-events:none; }
+#loader-dots {
+  display:flex; gap:10px; align-items:center;
+}
+.ld {
+  width:8px; height:8px; border-radius:50%;
+  background:rgba(255,255,255,0.7);
+  animation: ldpulse 1.2s ease-in-out infinite;
+}
+.ld:nth-child(2) { animation-delay:0.2s; }
+.ld:nth-child(3) { animation-delay:0.4s; }
+.ld:nth-child(4) { animation-delay:0.6s; }
+.ld:nth-child(5) { animation-delay:0.8s; }
+@keyframes ldpulse {
+  0%,100% { transform:scale(0.5); opacity:0.2; }
+  50%      { transform:scale(1.2); opacity:1; }
+}
+/* Photo loader */
+.img-wrap { position:relative; }
+.img-loader {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.3); border-radius:6px;
+}
+.img-loader .ld { width:6px; height:6px; }
 #lightbox {
   position:fixed; inset:0; z-index:999;
   background:rgba(0,0,0,0.82);
@@ -110,6 +141,15 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 </head>
 <body>
 <div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
+<div id="loader">
+  <div id="loader-dots">
+    <div class="ld"></div>
+    <div class="ld"></div>
+    <div class="ld"></div>
+    <div class="ld"></div>
+    <div class="ld"></div>
+  </div>
+</div>
 <canvas id="canvas"></canvas>
 <div id="name">Andrius K.</div>
 <div id="zoom-btns">
@@ -204,12 +244,20 @@ window.addEventListener('resize', resize);
 
 const img = new Image();
 img.onload = () => {
+  resize();
   loadDots().then(() => {
     buildGrid();
-    resize();
   });
 };
-img.src = document.getElementById('source-img').src;
+
+// Palaukiam kol DOM paruoštas
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    img.src = document.getElementById('source-img').src;
+  });
+} else {
+  img.src = document.getElementById('source-img').src;
+}
 
 function buildGrid() {
   // Portrait world size
@@ -293,13 +341,24 @@ function buildGrid() {
     }
   }
 
-  panX = W/2; panY = H/2;
-  zoom = getMinZoom() * 2;
-  setTimeout(updateZoomButtons, 0); // after DOM ready
+  // Starting position: 0.504/0.256
+  const START_NX = 0.504, START_NY = 0.256;
+  const isMobileInit = window.innerWidth <= 768;
 
+  zoom = getMinZoom() * (isMobileInit ? 1.26 : 2.0);
+
+  // Centruojame pagal startinę koordinatę
+  const ox2 = -portW/2, oy2 = -portH/2;
+  const startWX = ox2 + START_NX * portW;
+  const startWY = oy2 + START_NY * portH;
+  panX = getVisualCenterX() - startWX * zoom;
+  panY = getVisualCenterY() - startWY * zoom;
+
+  setTimeout(updateZoomButtons, 0);
   console.log('Dots built:', dots.length);
   if (rafId) cancelAnimationFrame(rafId);
   physicsStep();
+  setTimeout(hideLoader, 300);
 }
 
 const w2s = (wx,wy) => [panX+wx*zoom, panY+wy*zoom];
@@ -602,6 +661,13 @@ function getMobilePulseScale(i, now) {
 }
 
 // ─── PAN + HOVER ──────────────────────────────────────────────────────────────
+// ─── LOADER ───────────────────────────────────────────────────────────────────
+function hideLoader() {
+  const loader = document.getElementById('loader');
+  loader.classList.add('hidden');
+  setTimeout(() => loader.style.display = 'none', 500);
+}
+
 // ─── LIGHTBOX ─────────────────────────────────────────────────────────────────
 const lightbox    = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightbox-img');
@@ -620,6 +686,7 @@ lightbox.addEventListener('click', closeLightbox);
 // Wire up images in panel – called after renderPanel
 function bindPanelImages() {
   document.querySelectorAll('#panel-media img').forEach(img => {
+    img.style.cursor = 'zoom-in';
     img.addEventListener('click', e => {
       e.stopPropagation();
       openLightbox(img.src);
@@ -767,7 +834,12 @@ function renderPanel(d) {
   document.getElementById('panel-tags').innerHTML=d.tags.map(t=>`<span>${t}</span>`).join('');
   const media=document.getElementById('panel-media');
   let mh='';
-  if(d.img) mh+=`<img src="${d.img}" alt="${d.title}">`;
+  if(d.img) {
+    mh+=`<div class="img-wrap">
+      <div class="img-loader" id="img-loading"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div>
+      <img src="${d.img}" alt="${d.title}" style="opacity:0;transition:opacity 0.3s;" onload="this.style.opacity=1;const l=document.getElementById('img-loading');if(l)l.style.display='none';">
+    </div>`;
+  }
   if(d.spotify) {
     const u = d.spotify;
     if(u.includes('spotify.com')) {
