@@ -8,7 +8,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#080808; overflow:hidden; font-family:'Courier New',monospace; color:#fff; user-select:none; cursor:crosshair; }
 #canvas { display:block; position:fixed; top:0; left:0; cursor:crosshair; }
-#name { position:fixed; top:28px; left:32px; font-size:10px; letter-spacing:0.35em; text-transform:uppercase; color:rgba(255,255,255,0.15); pointer-events:none; z-index:10; }
+#name { position:fixed; top:28px; left:32px; font-size:13px; letter-spacing:0.28em; text-transform:uppercase; color:rgba(255,255,255,0.82); pointer-events:none; z-index:10; }
 
 /* Zoom buttons – left side */
 #zoom-btns {
@@ -27,7 +27,9 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 
 .zoom-btn {
   width:36px; height:36px; border-radius:50%;
-  background:#fff; border:none; cursor:pointer;
+  background:#080808;
+  border:1px solid rgba(255,255,255,0.07);
+  cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
@@ -37,6 +39,7 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 .zoom-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  border-color: rgba(255,255,255,0.15);
 }
 .zoom-btn:active { transform: scale(0.94); }
 .zoom-btn svg { width:14px; height:14px; }
@@ -159,25 +162,25 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 <div id="zoom-btns">
   <button class="zoom-btn" id="btn-zoom-in" title="Zoom in">
     <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="7" y1="2" x2="7" y2="12" stroke="#080808" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="2" y1="7" x2="12" y2="7" stroke="#080808" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="7" y1="2" x2="7" y2="12" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="2" y1="7" x2="12" y2="7" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
     </svg>
   </button>
   <button class="zoom-btn" id="btn-zoom-out" title="Zoom out">
     <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="2" y1="7" x2="12" y2="7" stroke="#080808" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="2" y1="7" x2="12" y2="7" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
     </svg>
   </button>
 </div>
 <div id="nav-btns">
-  <button class="zoom-btn" id="btn-prev" title="Ankstesnis">
+  <button class="zoom-btn" id="btn-prev" title="Back">
     <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="9,2 4,7 9,12" stroke="#080808" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="9,2 4,7 9,12" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </button>
-  <button class="zoom-btn" id="btn-next" title="Kitas">
+  <button class="zoom-btn" id="btn-next" title="Next">
     <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="5,2 10,7 5,12" stroke="#080808" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="5,2 10,7 5,12" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </button>
 </div>
