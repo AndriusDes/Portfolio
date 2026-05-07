@@ -85,11 +85,31 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 #panel-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:32px; }
 #panel-tags span { font-size:10px; letter-spacing:0.18em; text-transform:uppercase; border:1px solid rgba(255,255,255,0.18); padding:6px 12px; color:rgba(255,255,255,0.48); }
 #panel-media { margin-top:28px; display:flex; flex-direction:column; gap:14px; }
-#panel-media img { width:100%; border-radius:6px; display:block; }
+#panel-media img { width:100%; border-radius:6px; display:block; cursor:zoom-in; }
 #panel-media iframe { border-radius:10px; display:block; }
+
+/* Lightbox */
+#lightbox {
+  position:fixed; inset:0; z-index:999;
+  background:rgba(0,0,0,0.82);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.22s;
+  cursor:zoom-out;
+  backdrop-filter:blur(4px);
+}
+#lightbox.open { opacity:1; pointer-events:all; }
+#lightbox img {
+  max-width:90vw; max-height:90vh;
+  object-fit:contain;
+  border-radius:6px;
+  box-shadow:0 8px 48px rgba(0,0,0,0.6);
+  cursor:zoom-out;
+}
 </style>
 </head>
 <body>
+<div id="lightbox"><img id="lightbox-img" src="" alt=""></div>
 <canvas id="canvas"></canvas>
 <div id="name">Andrius K.</div>
 <div id="zoom-btns">
@@ -582,7 +602,35 @@ function getMobilePulseScale(i, now) {
 }
 
 // ─── PAN + HOVER ──────────────────────────────────────────────────────────────
-// ─── CURSOR ───────────────────────────────────────────────────────────────────
+// ─── LIGHTBOX ─────────────────────────────────────────────────────────────────
+const lightbox    = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('open');
+}
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  lightboxImg.src = '';
+}
+
+lightbox.addEventListener('click', closeLightbox);
+
+// Wire up images in panel – called after renderPanel
+function bindPanelImages() {
+  document.querySelectorAll('#panel-media img').forEach(img => {
+    img.addEventListener('click', e => {
+      e.stopPropagation();
+      openLightbox(img.src);
+    });
+  });
+}
+
+// Escape key closes
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLightbox();
+});
 // Single source of truth for cursor state
 // Priority: grabbing > pointer > crosshair
 function updateCursor() {
@@ -734,6 +782,7 @@ function renderPanel(d) {
     }
   }
   media.innerHTML=mh;
+  bindPanelImages();
 }
 
 function openPanel(d, skipFly) {
