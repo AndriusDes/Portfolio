@@ -224,6 +224,7 @@ let dots=[], hovered=null, panelOpen=false;
 let hoverScales = [];    // per-dot smooth hover scale 1→1.5
 let tooltipAlphas = [];  // per-dot smooth tooltip fade 0→1
 let waveOriginX=0, waveOriginY=0, waveTime=-999; // for bounce wave
+let introStartTime = null; // intro animation trigger
 
 // Grid params – matched to AK-dots.png grid
 const STEP   = 9;
@@ -261,6 +262,7 @@ const img = new Image();
 img.onload = () => {
   resize();
   loadDots().then(() => {
+    buildNavOrder();
     buildGrid();
   });
 };
@@ -498,6 +500,31 @@ function physicsStep() {
   rafId = requestAnimationFrame(physicsStep);
 }
 
+// ─── INTRO ANIMATION ──────────────────────────────────────────────────────────
+const INTRO_WAVE_SPEED = 420; // world units per second – how fast wave expands
+const INTRO_DOT_DUR    = 0.5; // seconds per dot animation – slower = more inertial
+// Wave origin: face center in world coords (portrait is -550..550, face at ny≈0.256)
+const INTRO_OX = 0;
+const INTRO_OY = -550 + 0.256 * 1100; // ≈ -268 world units (upper face area)
+
+function magneticOut(t) {
+  // Gentle overshoot (~4%) then slow inertial settle – like magnetic snap
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const s = 0.38;
+  t = t - 1;
+  return t*t*((s+1)*t + s) + 1;
+}
+
+function getIntroScale(i, now) {
+  if (introStartTime === null) return 1;
+  const d = dots[i];
+  const dist = Math.hypot(d.ox - INTRO_OX, d.oy - INTRO_OY);
+  const delay = dist / INTRO_WAVE_SPEED;
+  const t = (now - introStartTime - delay) / INTRO_DOT_DUR;
+  return magneticOut(Math.max(0, Math.min(1, t)));
+}
+
 function draw() {
   ctx.fillStyle = '#080808';
   ctx.fillRect(0, 0, W, H);
@@ -516,7 +543,8 @@ function draw() {
 
     // Bubble grows with focus strength + pulse
     const focusGrow = 1 + focusStr * 0.9;
-    const baseR = isActive ? d.r * 1.4 * focusGrow * pulseScale : d.r;
+    const introScale = getIntroScale(i, now);
+    const baseR = isActive ? d.r * 1.4 * focusGrow * pulseScale * introScale : d.r * introScale;
     const sr = baseR * zoom;
 
     if (sr < 0.2) return;
@@ -686,8 +714,8 @@ canvas.addEventListener('wheel', e => {
 }, { passive: false });
 
 // Zoom buttons use smooth animated zoom
-document.getElementById('btn-zoom-in').addEventListener('click', ()=>{ smoothZoom(-1,W/2,H/2); });
-document.getElementById('btn-zoom-out').addEventListener('click', ()=>{ smoothZoom(1,W/2,H/2); });
+document.getElementById('btn-zoom-in').addEventListener('click', ()=>{ smoothZoom(-1,getVisualCenterX(),getVisualCenterY()); });
+document.getElementById('btn-zoom-out').addEventListener('click', ()=>{ smoothZoom(1,getVisualCenterX(),getVisualCenterY()); });
 
 // ─── MOBILE CENTER PROXIMITY REVEAL ──────────────────────────────────────────
 const MOBILE_REVEAL_R = 130; // screen pixels from center
@@ -733,7 +761,20 @@ function getMobilePulseScale(i, now) {
 function hideLoader() {
   const loader = document.getElementById('loader');
   loader.classList.add('hidden');
-  setTimeout(() => loader.style.display = 'none', 500);
+  // Start intro as loader fades
+  introStartTime = performance.now() / 1000;
+  // Fade in name + hint after portrait materialises
+  const nameEl = document.getElementById('name');
+  const hintEl = document.getElementById('hint');
+  nameEl.style.opacity = '0';
+  nameEl.style.transition = 'opacity 0.9s ease';
+  hintEl.style.opacity = '0';
+  hintEl.style.transition = 'opacity 0.9s ease';
+  setTimeout(() => {
+    loader.style.display = 'none';
+    nameEl.style.opacity = '';
+    hintEl.style.opacity = '';
+  }, 500);
 }
 
 // ─── LIGHTBOX ─────────────────────────────────────────────────────────────────
@@ -765,6 +806,10 @@ function bindPanelImages() {
 // Escape key closes
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft')  navigateTo(currentNavPos - 1);
+  if (e.key === 'ArrowRight') navigateTo(currentNavPos + 1);
+  if (e.key === 'ArrowUp')   { e.preventDefault(); smoothZoom(-1, getVisualCenterX(), getVisualCenterY()); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); smoothZoom( 1, getVisualCenterX(), getVisualCenterY()); }
 });
 // Single source of truth for cursor state
 // Priority: grabbing > pointer > crosshair
@@ -851,7 +896,21 @@ canvas.addEventListener('touchend',e=>{
 const panel    = document.getElementById('panel');
 const navBtns  = document.getElementById('nav-btns');
 let swX=null, swipeY=null;
-let currentNavIdx = 0;
+let currentNavIdx = 0;  // index into ACTIVE_DEF
+let currentNavPos = 0;  // position in navOrder
+let navOrder = [];      // shuffled navigation sequence
+
+function buildNavOrder() {
+  const n = ACTIVE_DEF.length;
+  if (n <= 2) { navOrder = ACTIVE_DEF.map((_,i)=>i); return; }
+  // Keep first and last fixed, shuffle the middle
+  const middle = Array.from({length: n - 2}, (_, i) => i + 1);
+  for (let i = middle.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [middle[i], middle[j]] = [middle[j], middle[i]];
+  }
+  navOrder = [0, ...middle, n - 1];
+}
 
 function getDotByActiveIdx(ai) {
   return dots.findIndex(d => d.activeIdx === ai);
@@ -965,7 +1024,10 @@ function renderPanel(d) {
 }
 function openPanel(d, skipFly) {
   const ai=ACTIVE_DEF.indexOf(d);
-  if(ai!==-1) currentNavIdx=ai;
+  if(ai!==-1) {
+    currentNavIdx=ai;
+    currentNavPos=navOrder.indexOf(ai);
+  }
   renderPanel(d);
 
   const wasOpen = panelOpen;
@@ -985,9 +1047,10 @@ function closePanel(){
   panelOpen=false;
 }
 
-function navigateTo(idx){
-  const n=ACTIVE_DEF.length;
-  currentNavIdx=((idx%n)+n)%n;
+function navigateTo(pos){
+  const n=navOrder.length;
+  currentNavPos=((pos%n)+n)%n;
+  currentNavIdx=navOrder[currentNavPos];
   const d=ACTIVE_DEF[currentNavIdx];
   const di=getDotByActiveIdx(currentNavIdx);
 
@@ -1003,8 +1066,8 @@ function navigateTo(idx){
   }
 }
 
-document.getElementById('btn-prev').addEventListener('click',()=>navigateTo(currentNavIdx-1));
-document.getElementById('btn-next').addEventListener('click',()=>navigateTo(currentNavIdx+1));
+document.getElementById('btn-prev').addEventListener('click',()=>navigateTo(currentNavPos-1));
+document.getElementById('btn-next').addEventListener('click',()=>navigateTo(currentNavPos+1));
 
 // Swipe to close panel
 panel.addEventListener('touchstart',e=>{
