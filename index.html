@@ -234,6 +234,38 @@ let hoverScales = [];    // per-dot smooth hover scale 1→1.5
 let tooltipAlphas = [];  // per-dot smooth tooltip fade 0→1
 let waveOriginX=0, waveOriginY=0, waveTime=-999; // for bounce wave
 let introStartTime = null; // intro animation trigger
+// ─── IDLE STATE ───────────────────────────────────────────────────────────────
+let lastInteractionTime = 0;
+let idleActive = false;
+let idleNextMove = 0;
+let idleStrength = 0; // 0→1 smooth fade in/out
+const IDLE_THRESHOLD = 5; // seconds of inactivity before idle starts
+
+function resetIdle() {
+  lastInteractionTime = performance.now() / 1000;
+  idleActive = false;
+}
+
+function updateIdle(now) {
+  if (now - lastInteractionTime < IDLE_THRESHOLD) { idleActive = false; }
+  // Smooth fade in/out – lerp strength toward target
+  const target = idleActive ? 1 : 0;
+  idleStrength += (target - idleStrength) * 0.02;
+  if (!idleActive) return;
+  if (now < idleNextMove) return;
+
+  if (!panelOpen) {
+    // Pick a random active dot, fly to it and open panel
+    const activeDots = dots.filter(d => d.activeIdx !== null);
+    if (!activeDots.length) return;
+    const pick = activeDots[Math.floor(Math.random() * activeDots.length)];
+    openPanel(ACTIVE_DEF[pick.activeIdx]);
+    idleNextMove = now + 5 + Math.random() * 4; // 5–9s between moves
+  } else {
+    // Drawer open: just drift gently, don't change post
+    idleNextMove = now + 3 + Math.random() * 2;
+  }
+}
 
 // Grid params – matched to AK-dots.png grid
 const STEP   = 9;
@@ -504,6 +536,13 @@ function physicsStep() {
     updateZoomButtons();
   }
 
+  // Idle drift – gentle sinusoidal pan when drawer is open
+  if (idleStrength > 0.001 && panelOpen) {
+    const t = now * 0.12;
+    panX += Math.sin(t) * 0.25 * idleStrength;
+    panY += Math.cos(t * 0.73) * 0.18 * idleStrength;
+  }
+  updateIdle(now);
   draw();
   updateMobileFocus();
   rafId = requestAnimationFrame(physicsStep);
@@ -715,6 +754,7 @@ let zoomCX = 0, zoomCY = 0;
 const ZOOM_DAMPING = 0.78;
 
 canvas.addEventListener('wheel', e => {
+  resetIdle();
   e.preventDefault();
   const f = e.deltaY > 0 ? 0.013 : -0.013;
   zoomVelocity += f;
@@ -814,6 +854,7 @@ function bindPanelImages() {
 
 // Escape key closes
 window.addEventListener('keydown', e => {
+  resetIdle();
   if (e.key === 'Escape') closeLightbox();
   if (e.key === 'ArrowLeft')  navigateTo(currentNavPos - 1);
   if (e.key === 'ArrowRight') navigateTo(currentNavPos + 1);
@@ -831,6 +872,7 @@ function updateCursor() {
 let isPanning=false, panStart=null, didDrag=false;
 
 canvas.addEventListener('mousedown', e => {
+  resetIdle();
   if (e.button !== 0) return; // tik kairysis mygtukas
   isPanning = true; didDrag = false;
   panStart = { x:e.clientX, y:e.clientY, px:panX, py:panY };
@@ -843,6 +885,7 @@ window.addEventListener('mouseup', () => {
 });
 
 window.addEventListener('mousemove', e => {
+  resetIdle();
   const [wx,wy] = s2w(e.clientX, e.clientY);
   mouseWX = wx; mouseWY = wy;
 
@@ -870,6 +913,7 @@ canvas.addEventListener('click',e=>{
 // ─── TOUCH ────────────────────────────────────────────────────────────────────
 let t1=null,lastPinch=null;
 canvas.addEventListener('touchstart',e=>{
+  resetIdle();
   if(e.touches.length===1){t1={x:e.touches[0].clientX,y:e.touches[0].clientY,px:panX,py:panY};lastPinch=null;}
   else if(e.touches.length===2){t1=null;lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
 },{passive:true});
