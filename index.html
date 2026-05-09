@@ -249,23 +249,9 @@ function resetIdle() {
 function updateIdle(now) {
   if (now - lastInteractionTime < IDLE_THRESHOLD) { idleActive = false; }
   else { idleActive = true; }
-  // Smooth fade in/out – lerp strength toward target
+  // Smooth fade in/out
   const target = idleActive ? 1 : 0;
   idleStrength += (target - idleStrength) * 0.02;
-  if (!idleActive) return;
-  if (now < idleNextMove) return;
-
-  if (!panelOpen) {
-    // Pick a random active dot, fly to it and open panel
-    const activeDots = dots.filter(d => d.activeIdx !== null);
-    if (!activeDots.length) return;
-    const pick = activeDots[Math.floor(Math.random() * activeDots.length)];
-    openPanel(ACTIVE_DEF[pick.activeIdx]);
-    idleNextMove = now + 5 + Math.random() * 4; // 5–9s between moves
-  } else {
-    // Drawer open: just drift gently, don't change post
-    idleNextMove = now + 3 + Math.random() * 2;
-  }
 }
 
 // Grid params – matched to AK-dots.png grid
@@ -538,7 +524,7 @@ function physicsStep() {
   }
 
   // Idle drift – gentle sinusoidal pan when drawer is open
-  if (idleStrength > 0.001 && panelOpen) {
+  if (idleStrength > 0.001) {
     const t = now * 0.12;
     panX += Math.sin(t) * 0.25 * idleStrength;
     panY += Math.cos(t * 0.73) * 0.18 * idleStrength;
@@ -919,6 +905,7 @@ canvas.addEventListener('touchstart',e=>{
   else if(e.touches.length===2){t1=null;lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
 },{passive:true});
 canvas.addEventListener('touchmove',e=>{
+  resetIdle();
   e.preventDefault();
   if(e.touches.length===1&&t1){panX=t1.px+e.touches[0].clientX-t1.x;panY=t1.py+e.touches[0].clientY-t1.y;}
   else if(e.touches.length===2&&lastPinch!==null){
