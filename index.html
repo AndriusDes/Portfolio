@@ -248,6 +248,7 @@ function resetIdle() {
 
 function updateIdle(now) {
   if (now - lastInteractionTime < IDLE_THRESHOLD) { idleActive = false; }
+  else { idleActive = true; }
   // Smooth fade in/out – lerp strength toward target
   const target = idleActive ? 1 : 0;
   idleStrength += (target - idleStrength) * 0.02;
