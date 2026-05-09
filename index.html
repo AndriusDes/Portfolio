@@ -1115,6 +1115,7 @@ panel.addEventListener('touchstart',e=>{
   swX=e.touches[0].clientX; swipeY=e.touches[0].clientY;
 },{passive:true});
 panel.addEventListener('touchmove',e=>{
+  resetIdle();
   const isMobile=window.innerWidth<=768;
   if(isMobile){
     if(swipeY===null)return;
