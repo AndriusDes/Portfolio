@@ -213,6 +213,42 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 <img id="source-img" src="AK-dots.png" style="display:none">
 <script>
 const WORKER_URL = 'https://spring-snow-c3cc.andriusdesigner.workers.dev/';
+
+// ─── DEEP LINKS ───────────────────────────────────────────────────────────────
+function toSlug(title) {
+  return title.toLowerCase()
+    .replace(/[ąą]/g,'a').replace(/[čč]/g,'c').replace(/[ęę]/g,'e')
+    .replace(/[ėė]/g,'e').replace(/[įį]/g,'i').replace(/[šš]/g,'s')
+    .replace(/[ųų]/g,'u').replace(/[ūū]/g,'u').replace(/[žž]/g,'z')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+
+function setDeepLink(d) {
+  const slug = d ? toSlug(d.title) : '';
+  const url = slug ? (window.location.pathname + '?dot=' + slug) : window.location.pathname;
+  history.pushState({ dot: slug }, '', url);
+  updateOGMeta(d);
+}
+
+function updateOGMeta(d) {
+  const title = d ? 'Andrius K. — ' + d.title : 'Andrius K. — Interactive Portrait';
+  const desc  = d ? (d.body ? d.body.replace(/<[^>]+>/g,'').slice(0,120) + '…' : d.category) : 'A portrait made of moments. Hover, click, explore.';
+  const img   = (d && d.imgs && d.imgs[0]) ? d.imgs[0] : 'https://raw.githubusercontent.com/AndriusDes/Portfolio/main/AK-dots.png';
+  document.title = title;
+  document.querySelector('meta[property="og:title"]').setAttribute('content', title);
+  document.querySelector('meta[property="og:description"]').setAttribute('content', desc);
+  document.querySelector('meta[property="og:image"]').setAttribute('content', img);
+}
+
+function openDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('dot');
+  if (!slug || !ACTIVE_DEF.length) return;
+  const match = ACTIVE_DEF.find(d => toSlug(d.title) === slug);
+  if (!match) return;
+  // Small delay so grid is ready
+  setTimeout(() => openPanel(match), 100);
+}
 let ACTIVE_DEF = [];
 
 async function loadDots() {
@@ -403,6 +439,7 @@ function buildGrid() {
   if (rafId) cancelAnimationFrame(rafId);
   physicsStep();
   setTimeout(hideLoader, 300);
+  openDeepLink();
 }
 
 const w2s = (wx,wy) => [panX+wx*zoom, panY+wy*zoom];
@@ -1069,6 +1106,7 @@ function openPanel(d, skipFly) {
     currentNavIdx=ai;
     currentNavPos=navOrder.indexOf(ai);
   }
+  setDeepLink(d);
   renderPanel(d);
 
   const wasOpen = panelOpen;
@@ -1086,6 +1124,7 @@ function closePanel(){
   panel.classList.remove('open');
   panel.style.transform='';
   panelOpen=false;
+  setDeepLink(null);
 }
 
 function navigateTo(pos){
@@ -1095,6 +1134,7 @@ function navigateTo(pos){
   const d=ACTIVE_DEF[currentNavIdx];
   const di=getDotByActiveIdx(currentNavIdx);
 
+  setDeepLink(d);
   renderPanel(d);
 
   // Ensure panel is open BEFORE flyTo so getVisualCenterX/Y use shifted values
