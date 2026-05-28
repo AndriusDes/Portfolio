@@ -1,0 +1,18 @@
+# Andrius K. — Interactive Portrait Portfolio
+
+> An interactive halftone portrait where each dot represents a life fragment — a project, thought, music piece, or personal moment.
+
+## About
+- Author: Andrius K.
+- Site: https://andriusdesigner.com
+- Type: Personal portfolio
+
+## Content API
+All portfolio entries (JSON): https://spring-snow-c3cc.andriusdesigner.workers.dev/
+
+Each entry contains: title, category, year, body text, tags, images, and links.
+Categories: Projects, Mind, Music, Design, Personal.
+
+## Deep Links
+Individual entries are accessible at: https://andriusdesigner.com/?dot={slug}
+where {slug} is the entry title converted to lowercase kebab-case.
