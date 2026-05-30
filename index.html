@@ -236,6 +236,14 @@ function setDeepLink(d) {
   const url = slug ? (window.location.pathname + '?dot=' + slug) : window.location.pathname;
   history.pushState({ dot: slug }, '', url);
   updateOGMeta(d);
+  if (d && typeof gtag !== 'undefined') {
+    gtag('config', 'G-GVZMF4FEJN', { page_path: url });
+    gtag('event', 'dot_opened', {
+      dot_title: d.title,
+      dot_category: d.category,
+      dot_year: d.year
+    });
+  }
 }
 
 function updateOGMeta(d) {
