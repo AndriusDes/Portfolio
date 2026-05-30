@@ -1039,15 +1039,11 @@ function renderPanel(d) {
     document.getElementById('pc-label').textContent = d.category;
     document.getElementById('panel-title').textContent = d.title;
     document.getElementById('panel-year').textContent = d.year;
-    document.getElementById('panel-body').innerHTML = d.body || '';
-    document.getElementById('panel-tags').innerHTML = d.tags.map(function(t){ return '<span>' + t + '</span>'; }).join('');
-
-    // Always clear media first
-    var media = document.getElementById('panel-media');
-    media.innerHTML = '';
-
     var imgList = d.imgs || (d.img ? [d.img] : []);
-    imgList.forEach(function(imgSrc) {
+    var usedImgs = new Set();
+
+    // Helper: build img wrap element
+    function makeImgWrap(imgSrc) {
       var wrap = document.createElement('div');
       wrap.className = 'img-wrap';
       var loader = document.createElement('div');
@@ -1058,13 +1054,46 @@ function renderPanel(d) {
       imgTag.src = imgSrc;
       imgTag.alt = d.title || '';
       imgTag.style.cssText = 'opacity:0;transition:opacity 0.3s;width:100%;border-radius:6px;display:block;cursor:zoom-in;';
-      imgTag.onload = function() {
-        imgTag.style.opacity = 1;
-        loader.style.display = 'none';
-      };
+      imgTag.onload = function() { imgTag.style.opacity = 1; loader.style.display = 'none'; };
       imgTag.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(imgSrc); });
       wrap.appendChild(imgTag);
-      media.appendChild(wrap);
+      return wrap;
+    }
+
+    // Replace [foto:N] in body with actual img elements
+    var bodyEl = document.getElementById('panel-body');
+    var bodyHtml = d.body || '';
+    // Split body on [foto:N] markers
+    var parts = bodyHtml.split(/\[foto:(\d+)\]/g);
+    bodyEl.innerHTML = '';
+    for (var pi = 0; pi < parts.length; pi++) {
+      if (pi % 2 === 0) {
+        // Text chunk
+        if (parts[pi]) {
+          var span = document.createElement('span');
+          span.innerHTML = parts[pi];
+          bodyEl.appendChild(span);
+        }
+      } else {
+        // foto index (1-based)
+        var fIdx = parseInt(parts[pi]) - 1;
+        if (imgList[fIdx]) {
+          usedImgs.add(fIdx);
+          bodyEl.appendChild(makeImgWrap(imgList[fIdx]));
+        }
+      }
+    }
+
+    document.getElementById('panel-tags').innerHTML = d.tags.map(function(t){ return '<span>' + t + '</span>'; }).join('');
+
+    // Always clear media first
+    var media = document.getElementById('panel-media');
+    media.innerHTML = '';
+
+    // Only show images NOT already used inline in body
+    imgList.forEach(function(imgSrc, idx) {
+      if (usedImgs.has(idx)) return;
+      media.appendChild(makeImgWrap(imgSrc));
     });
 
     if (d.spotify) {
