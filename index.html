@@ -25,7 +25,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#080808; overflow:hidden; font-family:'Courier New',monospace; color:#fff; user-select:none; cursor:crosshair; }
 #canvas { display:block; position:fixed; top:0; left:0; cursor:crosshair; }
-#name { position:fixed; top:28px; left:32px; font-size:13px; letter-spacing:0.28em; text-transform:uppercase; color:rgba(255,255,255,0.82); pointer-events:none; z-index:10; }
+#name { position:fixed; top:28px; left:32px; font-size:15px; letter-spacing:0.28em; text-transform:uppercase; color:rgba(255,255,255,0.82); pointer-events:none; z-index:10; }
 
 /* Zoom buttons – left side */
 #zoom-btns {
@@ -66,9 +66,9 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
   #nav-btns { top:28px; right:28px; bottom:auto; }
 }
 
-#hint { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.13); pointer-events:none; transition:opacity 1.4s; z-index:10; }
+#hint { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.13); pointer-events:none; transition:opacity 1.4s; z-index:10; }
 #hint.hidden { opacity:0; }
-#tooltip { position:fixed; pointer-events:none; transform:translate(-50%,-145%); background:rgba(8,8,8,0.92); border:1px solid rgba(255,255,255,0.1); padding:7px 13px; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.72); white-space:nowrap; opacity:0; transition:opacity 0.1s; z-index:50; }
+#tooltip { position:fixed; pointer-events:none; transform:translate(-50%,-145%); background:rgba(8,8,8,0.92); border:1px solid rgba(255,255,255,0.1); padding:7px 13px; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.72); white-space:nowrap; opacity:0; transition:opacity 0.1s; z-index:50; }
 #tooltip .dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:7px; vertical-align:middle; }
 #panel { position:fixed; top:0; right:0; width:400px; height:100vh; background:rgba(8,8,8,0.98); border-left:1px solid rgba(255,255,255,0.09); padding:80px 38px 48px; transform:translateX(100%); transition:transform 0.48s cubic-bezier(0.16,1,0.3,1); overflow-y:auto; z-index:100; touch-action: manipulation; }
 
@@ -87,6 +87,10 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
     transform:translateY(100%);
   }
   #panel.open { transform:translateY(0); }
+  #panel-body { font-size:16px; }
+  #panel-year { font-size:12px; }
+  #panel-cat  { font-size:12px; }
+  #panel-tags span { font-size:12px; }
   #panel::before {
     content:'';
     display:block;
@@ -100,12 +104,12 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
   transition: opacity 0.18s ease;
 }
 #panel-content.fading { opacity: 0; }
-#panel-cat { font-size:10px; letter-spacing:0.32em; text-transform:uppercase; color:rgba(255,255,255,0.45); display:flex; align-items:center; gap:9px; margin-bottom:20px; }
+#panel-cat { font-size:12px; letter-spacing:0.32em; text-transform:uppercase; color:rgba(255,255,255,0.45); display:flex; align-items:center; gap:9px; margin-bottom:20px; }
 #panel-cat .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 #panel-title { font-size:26px; font-weight:400; letter-spacing:0.02em; line-height:1.25; color:rgba(255,255,255,0.96); margin-bottom:10px; }
-#panel-year { font-size:11px; color:rgba(255,255,255,0.38); letter-spacing:0.22em; margin-bottom:32px; }
+#panel-year { font-size:12px; color:rgba(255,255,255,0.38); letter-spacing:0.22em; margin-bottom:32px; }
 #panel-line { height:1px; background:rgba(255,255,255,0.1); margin-bottom:32px; }
-#panel-body { font-size:14px; line-height:1.85; color:rgba(255,255,255,0.72); letter-spacing:0.01em; }
+#panel-body { font-size:15px; line-height:1.85; color:rgba(255,255,255,0.72); letter-spacing:0.01em; }
 #panel-body strong { color:rgba(255,255,255,0.95); font-weight:600; }
 #panel-body em { font-style:italic; color:rgba(255,255,255,0.8); }
 #panel-body code { font-family:'Courier New',monospace; font-size:11px; background:rgba(255,255,255,0.08); padding:2px 5px; border-radius:3px; }
@@ -113,7 +117,7 @@ body { background:#080808; overflow:hidden; font-family:'Courier New',monospace;
 #panel-body a:hover { color:#fff; }
 #panel-body br + br { display:block; margin-top:10px; content:''; }
 #panel-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:32px; }
-#panel-tags span { font-size:10px; letter-spacing:0.18em; text-transform:uppercase; border:1px solid rgba(255,255,255,0.18); padding:6px 12px; color:rgba(255,255,255,0.48); }
+#panel-tags span { font-size:12px; letter-spacing:0.18em; text-transform:uppercase; border:1px solid rgba(255,255,255,0.18); padding:6px 12px; color:rgba(255,255,255,0.48); }
 #panel-media { margin-top:28px; display:flex; flex-direction:column; gap:14px; }
 #panel-media img { width:100%; border-radius:6px; display:block; cursor:zoom-in; }
 #panel-media iframe { border-radius:10px; display:block; }
