@@ -108,7 +108,7 @@
   .why-n { margin:0; }
   .why-u { min-height:2.5em; }
   @media (max-width:700px) { .why-u { min-height:3.75em; } }   /* telefone ilgiausia frazė — 3 eilutės; tekstas nešokinėja */
-  .why-u { white-space:pre-line; transition:opacity .45s ease-in-out; } .why-u b { font-weight:inherit; } .why-u s { text-decoration:none; color:transparent; }
+  .why-u { white-space:pre-line; transition:opacity .45s ease-in-out; } .why-u b { font-weight:inherit; } .why-u s { text-decoration:none; visibility:hidden; }   /* ne transparent — iOS Safari palikdavo senos frazės liekanas */
   .why-u.out { opacity:0; }   /* frazė ne trinama raidėmis, o ramiai užgęsta */
   .why-u i { display:inline-block; width:.06em; height:.9em; margin:0 -.06em -.08em 0; background:var(--fg); }   /* nulinis plotis — raidės nepasislenka */
   .why-s { margin:14px 0 0; font-size:clamp(13px, 1.4vw, 16px); letter-spacing:.14em; }
@@ -319,7 +319,7 @@
   #sq7Svg { display:block; width:100%; height:150px; cursor:crosshair; background:#070707; touch-action:none; }
   #sq7Svg .grid { stroke:#1c1c1c; } #sq7Svg .mid { stroke:#222; stroke-dasharray:1 3; }
   #sq7Svg path.ln { fill:none; stroke-width:1.2; vector-effect:non-scaling-stroke; opacity:.55; } #sq7Svg path.ln.sel { stroke-width:2; opacity:1; }
-  #sq7Svg circle { fill:none; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+  #sq7Svg ellipse { fill:none; stroke-width:1.5; vector-effect:non-scaling-stroke; }
   .sq7-x { color:#4a4a4a; cursor:pointer; text-align:center; } .sq7-x:hover { color:var(--fg); }
 
   /* ── 8 žingsnis: aranžuotė — kortelės = dainos dalys (ilgis, mute), perjungimas takto riboje ── */
@@ -370,7 +370,7 @@
   /* Pora: žmogus rašo problemą (kaip WHY) → atsakymas (didesnis — jis lieka atmintyje). Vieta rezervuota — niekas nešokinėja */
   .sm-qa { display:grid; gap:12px; text-align:center; width:min(760px, 100%); }
   .sm-q { margin:0; min-height:3em; font-size:clamp(12px, 1.3vw, 15px); letter-spacing:.14em; line-height:1.5; color:#bdbdbd; white-space:pre-line; }
-  .sm-q b { font-weight:inherit; } .sm-q s { text-decoration:none; color:transparent; }
+  .sm-q b { font-weight:inherit; } .sm-q s { text-decoration:none; visibility:hidden; }
   .sm-q i { display:inline-block; width:.08em; height:1em; margin:0 -.08em -.12em 0; background:#bdbdbd; }
   .sm-a { margin:0; min-height:2.6em; font-weight:200; font-size:clamp(18px, 2.2vw, 24px); letter-spacing:.12em; line-height:1.3; opacity:0; transition:opacity .6s; }
   .sm-a.in { opacity:1; }
@@ -464,6 +464,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 scrollTo(0, 0);
+addEventListener('load', () => scrollTo(0, 0)); addEventListener('pageshow', () => scrollTo(0, 0));   // iOS Safari vietą kartais atkuria vėliau — dar kartą į pradžią
 {   // telefono įspėjimas: rodomas trumpai, tada pašalinamas (kompiuteryje — iškart)
   const io = document.getElementById('intro');
   if (!matchMedia('(max-width:700px)').matches) io.remove();
@@ -1493,11 +1494,13 @@ const SEQ7 = (() => {
     return 'M' + [[0, edge[1]]].concat(wrap, main).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
   }
   function renderDraw() {
+    // plotas tempiamas (preserveAspectRatio none) — žymeklio spinduliai kompensuoja, kad ekrane būtų tikras 4 px apskritimas
+    const w = svgD.clientWidth || DW, h = svgD.clientHeight || DH, rx = (4 * DW / w).toFixed(2), ry = (4 * DH / h).toFixed(2);
     chips.innerHTML = lanes.map(l => `<b data-cc="${l.cc}" class="${l.cc === brush ? 'sel' : ''}" style="--c:${l.c}">${BY[l.cc].n}</b>`).join('');
     let g = ''; for (let k = 0; k <= N; k++) g += `<line class="grid" x1="${k * DW / N}" y1="0" x2="${k * DW / N}" y2="${DH}"/>`;
     svgD.innerHTML = g + `<line class="mid" x1="0" y1="${dy(64)}" x2="${DW}" y2="${dy(64)}"/>`
       + lanes.map(l => `<path class="ln${l.cc === brush ? ' sel' : ''}" data-cc="${l.cc}" stroke="${l.c}" d="${linePath(l)}"/>`).join('')
-      + lanes.map(l => `<circle data-cc="${l.cc}" r="4" stroke="${l.c}" cx="-10" cy="-10"/>`).join('');
+      + lanes.map(l => `<ellipse data-cc="${l.cc}" rx="${rx}" ry="${ry}" stroke="${l.c}" cx="-10" cy="-10"/>`).join('');
   }
   const curVal = (l, t) => { const a = l.v[(step + N - 1) % N], b = l.v[step]; return a + (b - a) * CF[l.cv](t); };   // iš gyvų reikšmių — žymeklis visada ant kreivės
   const muted = cc => !!(hook && hook.muted(cc));
@@ -1505,12 +1508,13 @@ const SEQ7 = (() => {
     if (mode !== 'draw' || step < 0) return;
     const now = performance.now();
     for (const l of lanes) {
-      const c = svgD.querySelector(`circle[data-cc="${l.cc}"]`); if (!c) continue;
+      const c = svgD.querySelector(`ellipse[data-cc="${l.cc}"]`); if (!c) continue;
       const t = clamp((now - stepT0) / 500);
       let x = dx((step + N - 1) % N) + DW / N * t; if (x > DW) x -= DW;   // sandūroje — iš dešinio krašto į kairįjį, ant linijos
       c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', dy(curVal(l, t)).toFixed(1));   // tas pats taškas, kaip linijoje
     }
   }
+  addEventListener('resize', () => { if (mode === 'draw' && !drawEl.hidden) { renderDraw(); drawMarks(); } });   // pasikeitus pločiui — žymekliai lieka apskriti
   function setMode(m) { mode = m; modeEl.classList.toggle('draw', m === 'draw'); lanesEl.hidden = m === 'draw'; drawEl.hidden = m !== 'draw'; if (!brush && lanes[0]) brush = lanes[0].cc; renderDraw(); drawMarks(); }
 
   const laneOf = cc => lanes.find(l => l.cc === cc);
@@ -1520,8 +1524,8 @@ const SEQ7 = (() => {
       : '<div class="lb-empty">Drop a parameter here</div>';
     lanes.forEach(drawLane);
     if (!laneOf(brush)) brush = lanes[0] ? lanes[0].cc : null;
-    if (mode === 'draw') renderDraw();
-    syncH(); tags(); values(); mark();
+    syncH(); if (mode === 'draw') renderDraw();   // pirma aukštis — tada žymeklių spinduliai
+    tags(); values(); mark();
   }
   // STEPS ir DRAW — vienodo aukščio (perjungus niekas nešokinėja, pelė lieka ties tuo pačiu tašku). Pagrindas — DRAW aukštis;
   // jei eilučių daugiau, nei telpa — abu auga kartu (DRAW kreivių laukas didėja)
@@ -1903,7 +1907,7 @@ const ARR = (() => {
    2 (7): Track 1 lieka, OXI grįžta į dešinę, SEQ ateina iš apačios. 3 (8): Track 1 ir SEQ laukia, iš apačios — aranžuotė.
    Telefone ta pati logika vertikaliai. Kadrai — tik kai drobė matoma ir juda; žingsniai aktyvuojami tik stovint. */
 (() => {
-  const flow = $('#flow'), lib = $('#foLib'), t5 = $('#lbTrack'), oxi = $('#foOxi'), seq = $('#foSeq'), arr = $('#foArr'), caps = $$('.fl-cap'), wires = $('#mpWires'), S = caps.length - 1;
+  const stageEl = $('#flowStage'), flow = $('#flow'), lib = $('#foLib'), t5 = $('#lbTrack'), oxi = $('#foOxi'), seq = $('#foSeq'), arr = $('#foArr'), caps = $$('.fl-cap'), wires = $('#mpWires'), S = caps.length - 1;
   let raf = 0, step = -1, lastK = '';
   const sm = t => t * t * (3 - 2 * t);
   const P = (x, y, o = 1) => ({ x, y, o });
@@ -1927,7 +1931,7 @@ const ARR = (() => {
       lastK = key;
       // pirma visi matavimai, tada rašymas
       const hL = lib.offsetHeight, hT = t5.offsetHeight, hS = seq.offsetHeight, hA = arr.offsetHeight, wL = lib.offsetWidth, wT = t5.offsetWidth, wO = oxi.offsetWidth, wS = seq.offsetWidth;
-      const capB = caps.map(c => c.getBoundingClientRect().bottom);
+      const sTop = stageEl.getBoundingClientRect().top, capB = caps.map(c => c.getBoundingClientRect().bottom - sTop);   // antraštės apačia — drobės koordinatėmis (ne lango): įslenkant nebūna +vh poslinkio
       let K;   // kiekvieno objekto padėtis kiekviename žingsnyje
       if (mob) {   // vertikaliai: po antrašte — viršuje šaltinis, po juo taikinys (pozicijos pagal tikrą aukštį; drobė lipni, todėl lango koordinatės)
         arr.style.width = '';   // telefone — CSS plotis
