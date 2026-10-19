@@ -141,7 +141,7 @@
     .sch .d { display:none; } .sch .m { display:block; }
   }
   #story [data-dev] { color:var(--ln); }
-  #story svg#cv { position:absolute; inset:0; width:100%; height:100%; }
+  #story svg#cv { position:absolute; inset:0; width:100%; height:100%; touch-action:pan-y; }   /* lietimas: aukštyn/žemyn — slinkimas, į šonus — geltonas knob'as */
   #story #caps { position:absolute; left:0; right:0; top:0; bottom:8vh; pointer-events:none; text-align:center; }
   #story .cap.cap-top { top:11vh; bottom:auto; }   /* schema — antraštė viršuje, kaip drobėje 5–8: prasideda T↔OXI dalis */
   #story .cap { position:absolute; left:0; right:0; bottom:0; display:grid; gap:10px; padding:0 24px; opacity:0; }
@@ -1171,17 +1171,19 @@ svg.addEventListener('pointerdown', e => {
   const k = e.target.closest('[data-d="oxi"].k'), c = e.target.closest('.cell'), pl = e.target.closest('.play');
   if (pl) { playUser = !playing; setPlay(!playing); cueDone(2); return; }
   if (!k && !c) return;
-  const i = k ? +k.dataset.k : +c.dataset.c;
-  drag = { i, src: k ? 'oxi' : 'toxi', y: e.clientY, v: VAL[i] }; cueDone(k ? 0 : 1);
+  const i = k ? +k.dataset.k : +c.dataset.c, tch = e.pointerType === 'touch';
+  if (tch && i !== act) return;   // telefone — sukamas tik geltonas (aktyvus) knob'as / langelis; kiti — ne (slinkimas svarbesnis)
+  drag = { i, src: k ? 'oxi' : 'toxi', x: e.clientX, y: e.clientY, v: VAL[i], tch }; cueDone(k ? 0 : 1);
   document.body.classList.add('dragging'); e.preventDefault();
   touch(i, VAL[i], drag.src);
 });
 addEventListener('pointermove', e => {
-  if (drag) { touch(drag.i, drag.v + (drag.y - e.clientY) * .7, drag.src); return; }
+  if (drag) { touch(drag.i, drag.v + (drag.tch ? e.clientX - drag.x : drag.y - e.clientY) * .7, drag.src); return; }   // telefone — braukimas į šonus, pele — aukštyn/žemyn
   if (e.pointerType === 'touch') return;
   tx = e.clientX / innerWidth * 2 - 1; ty = e.clientY / innerHeight * 2 - 1; if (inView) kick();
 }, { passive: true });
-addEventListener('pointerup', () => { if (drag) { userUntil = performance.now() + 2500; } drag = null; document.body.classList.remove('dragging'); kick(); });
+const storyEnd = () => { if (drag) { userUntil = performance.now() + 2500; } drag = null; document.body.classList.remove('dragging'); kick(); };
+addEventListener('pointerup', storyEnd); addEventListener('pointercancel', storyEnd);
 // Paryškėja tik įrenginys po pele
 svg.addEventListener('pointerover', e => { const d = e.target.closest('[data-dev]'); DEVS.forEach(D => D.g.classList.toggle('hot', D.g === d)); });
 svg.addEventListener('pointerleave', () => DEVS.forEach(D => D.g.classList.remove('hot')));
