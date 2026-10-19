@@ -1811,6 +1811,7 @@ const ARR = (() => {
   }
   function onScroll() {
     const r = sec.getBoundingClientRect(), vh = innerHeight;
+    if (sec.offsetHeight - vh <= 0) return;   // langas be aukščio — neskaičiuojam
     if (!(r.top <= 1 && r.bottom >= vh - 1)) { if (cur !== -1 && (r.bottom < 0 || r.top > vh)) { clearTimeout(tm); cur = -1; } return; }   // tik kai scena užpildo ekraną
     const i = Math.round(clamp(-r.top / (sec.offsetHeight - vh)) * (PAIRS.length - 1));
     if (i !== cur) show(i);
@@ -1845,6 +1846,7 @@ const ARR = (() => {
     raf = 0;
     const r = flow.getBoundingClientRect(), vh = innerHeight, vw = innerWidth;
     if (r.bottom < 0 || r.top > vh) { if (step !== -1) { step = -1; activate(-1); } return; }
+    if (flow.offsetHeight - vh <= 0) return;   // langas dar neturi aukščio (pvz. fone atidarytas skirtukas) — neskaičiuojam (būtų dalyba iš 0)
     const p = clamp(-r.top / (flow.offsetHeight - vh)), u = p * S, k = Math.min(S - 1, Math.floor(u)), t = sm(u - k), mob = vw <= 700, key = `${p.toFixed(4)}|${vw}|${vh}`;
     if (key !== lastK) {
       lastK = key;
