@@ -11,7 +11,7 @@
           --acc:#3dff8f; --live:#ffd23f; --blue:#4fa3c7; }
   * { box-sizing:border-box; }
   html { background:var(--bg); scroll-snap-type:y mandatory; touch-action:pan-x pan-y; }   /* viena scena per vieną scroll judesį; telefone — be pinch / dvigubo bakstelėjimo mastelio (jis laužo scenų žingsnius) */
-  #hero, #why, #story .snap, #flow .snap, #sum .snap, #next { scroll-snap-stop:always; }
+  #hero, #why, #story .snap, #flow .snap, #sum .snap, #next, #faq { scroll-snap-stop:always; }
   /* Lietimas: tekstas nežymimas, iOS meniu ir paspaudimo blyksnis neatsiranda (puslapis — instrumentas, ne dokumentas) */
   @media (pointer:coarse) { body { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; } }
   * { -webkit-tap-highlight-color:transparent; }
@@ -200,7 +200,25 @@
   #story .play.on .solid { fill:var(--acc); fill-opacity:.7; stroke:var(--acc); stroke-opacity:1; transition:fill-opacity .35s; }
   #story .play.on.beat .solid { fill-opacity:1; transition:none; }
   #story .play.on .pi { fill:#000; stroke:#000; }
-  #next { height:100vh; scroll-snap-align:start; display:grid; place-content:center; text-align:center; color:var(--dim); font-size:11px; letter-spacing:.2em; }
+  /* ── PABAIGA: du keliai — išbandyti (demo) arba įsigyti; po jais — klausimai (ramūs, išskleidžiami) ── */
+  #next { height:100vh; scroll-snap-align:start; display:grid; place-content:center; justify-items:center; gap:22px; text-align:center; padding:0 24px; }
+  #next h2 { margin:0; font-weight:200; font-size:clamp(28px, 4vw, 48px); letter-spacing:.12em; }
+  .nx-sub { margin:0; color:var(--dim); font-size:10px; letter-spacing:.16em; background:#000; box-shadow:0 0 0 4px #000; }
+  .nx-btns { display:flex; gap:14px; margin-top:12px; flex-wrap:wrap; justify-content:center; }
+  .nx-b { display:grid; gap:6px; width:220px; padding:16px 18px; text-align:center; background:#000; box-shadow:inset 0 0 0 1px #3a3a3a; transition:box-shadow .25s, color .25s; }
+  .nx-b b { font-weight:normal; font-size:12px; letter-spacing:.22em; color:var(--fg); }
+  .nx-b span { font-size:9px; letter-spacing:.16em; color:var(--dim); }
+  .nx-b:hover { box-shadow:inset 0 0 0 1px var(--fg); }
+  .nx-b.buy { box-shadow:inset 0 0 0 1px var(--acc); } .nx-b.buy b { color:var(--acc); } .nx-b.buy:hover { box-shadow:inset 0 0 0 1px var(--acc), 0 0 0 1px var(--acc); }
+  #faq { scroll-snap-align:start; padding:14vh 24px 18vh; display:grid; justify-items:center; }
+  #faq h3 { margin:0 0 22px; font-weight:normal; font-size:10px; letter-spacing:.2em; color:var(--dim); background:#000; box-shadow:0 0 0 4px #000; }
+  .faq { width:min(720px, 100%); background:#000; border-top:1px solid var(--line); }
+  .faq details { border-bottom:1px solid var(--line); }
+  .faq summary { list-style:none; cursor:pointer; display:flex; justify-content:space-between; gap:16px; padding:16px 2px; font-size:11px; letter-spacing:.14em; line-height:1.5; color:#cfcfcf; }
+  .faq summary::-webkit-details-marker { display:none; }
+  .faq summary::after { content:"+"; color:var(--dim); } .faq details[open] summary::after { content:"−"; color:var(--acc); }
+  .faq summary:hover { color:var(--fg); }
+  .faq p { margin:0; padding:0 2px 18px; max-width:62ch; font-size:10px; letter-spacing:.1em; line-height:1.7; color:var(--dim); }
 
   @media (max-width:700px) { .top { padding:14px 16px; } .fl.mhide { display:none; } .hseq i:nth-child(n+9) { display:none; } }
   .h-trk { width:220px; }
@@ -455,11 +473,32 @@
   </div>
   <i class="snap" style="top:0"></i><i class="snap" style="top:100vh"></i><i class="snap" style="top:200vh"></i>
 </section>
-<section id="next">Next · open T↔OXI</section>
+<section id="next">
+  <h2>Your turn</h2>
+  <p class="nx-sub">Runs in Chrome · One HTML file · No install</p>
+  <div class="nx-btns">
+    <a class="nx-b" id="nxDemo" href="#" data-todo="demo"><b>Try live demo</b><span>Free · no presets</span></a>
+    <a class="nx-b buy" id="nxBuy" href="#" data-todo="buy" target="_blank" rel="noopener"><b>Buy</b><span>Full version · presets</span></a>
+  </div>
+</section>
+<section id="faq">
+  <h3>Questions</h3>
+  <div class="faq">
+    <details><summary>Do I have to pick every parameter one by one?</summary><p>No. Start from a preset: four tracks, Mix and knobs already linked. Change only what you need. A whole device can be dragged in at once. The demo has no presets.</p></details>
+    <details><summary>Do I need to reprogram the OXI?</summary><p>No. Turn a knob once and T↔OXI learns it. Knob and page names can be written into a copy of your OXI App scene (.oxie16). Import it, and the E16 shows the same knob and page names.</p></details>
+    <details><summary>Does the S-4 need any setup?</summary><p>A few switches in CONFIG › MIDI: CC control on, sync out on. Tracks 1–4 on MIDI channels 1–4.</p></details>
+    <details><summary>How is everything connected?</summary><p>The OXI and the S-4 go to the computer by USB. T↔OXI sits in between. The OXI never talks to the S-4 directly.</p></details>
+    <details><summary>Will my S-4 sound jump when I connect?</summary><p>No. Values T↔OXI hasn't sent yet stay grey. You send them when you're ready.</p></details>
+    <details><summary>Does it follow the S-4 tempo?</summary><p>Yes. The S-4 sends clock while it plays, and the sequencer follows it. Without it, there's an internal BPM.</p></details>
+    <details><summary>What about the S-4's own LFOs?</summary><p>They keep moving. T↔OXI moves the base value, and the LFO breathes around it.</p></details>
+    <details><summary>Which browser? Do I install anything?</summary><p>Chrome, because of Web MIDI. It's one HTML file: open it and play. No install.</p></details>
+  </div>
+</section>
 
 <script>
 'use strict';
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+document.querySelectorAll('a[data-todo]').forEach(a => a.addEventListener('click', e => e.preventDefault()));   // nuorodos dar neprijungtos (demo, Gumroad)
 // Perkrovus — visada nuo pradžios (hero): naršyklė neatkuria slinkimo vietos, #žyma pašalinama
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 if (location.hash) history.replaceState(null, '', location.pathname + location.search);
