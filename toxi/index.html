@@ -14,7 +14,14 @@
   #hero, #why, #story .snap, #flow .snap, #sum .snap, #next { scroll-snap-stop:always; }
   /* Lietimas: tekstas nežymimas, iOS meniu ir paspaudimo blyksnis neatsiranda (puslapis — instrumentas, ne dokumentas) */
   @media (pointer:coarse) { body { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; } }
-  * { -webkit-tap-highlight-color:transparent; }   /* greitas trackpad'o mostas nepraslysta pro sceną (ypač pirmą kartą, kol scena dar piešiama) */
+  * { -webkit-tap-highlight-color:transparent; }
+  /* Telefone — trumpas įspėjimas: tai sumažinta versija, pilna — kompiuteryje. Užgęsta pats (~2,5 s) arba bakstelėjus */
+  #intro { display:none; }
+  @media (max-width:700px) {
+    #intro { position:fixed; inset:0; z-index:100; display:grid; place-content:center; gap:12px; padding:0 32px; text-align:center; background:#000; transition:opacity .6s ease; }
+    #intro.out { opacity:0; pointer-events:none; }
+    #intro p { margin:0; } .io-a { color:var(--dim); font-size:10px; letter-spacing:.2em; } .io-b { font-weight:200; font-size:18px; letter-spacing:.12em; line-height:1.4; }
+  }   /* greitas trackpad'o mostas nepraslysta pro sceną (ypač pirmą kartą, kol scena dar piešiama) */
   body { margin:0; color:var(--fg); font:12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
          text-transform:uppercase; letter-spacing:.08em; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
   body.dragging { cursor:grabbing; user-select:none; }
@@ -378,6 +385,7 @@
 </head>
 <body>
 <div id="bg"></div>
+<div id="intro" role="status"><p class="io-a">Pocket version</p><p class="io-b">The full instrument opens on desktop</p></div>
 <div class="top"><a class="tlogo" href="#hero">T↔OXI</a><a href="https://andriusdesigner.com">ANDRIUS K.</a></div>
 
 <!-- ── HERO: logo + parallax drobė ── -->
@@ -452,6 +460,11 @@
 <script>
 'use strict';
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+{   // telefono įspėjimas: rodomas trumpai, tada pašalinamas (kompiuteryje — iškart)
+  const io = document.getElementById('intro');
+  if (!matchMedia('(max-width:700px)').matches) io.remove();
+  else { const hide = () => { io.classList.add('out'); setTimeout(() => io.remove(), 700); }; const t = setTimeout(hide, 2600); io.addEventListener('pointerdown', () => { clearTimeout(t); hide(); }, { once: true }); }
+}
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -755,7 +768,11 @@ addEventListener('pointermove', e => {
   tx = e.clientX / innerWidth * 2 - 1; ty = e.clientY / innerHeight * 2 - 1; if (scrollY < innerHeight) kick();   // hero išslinkęs — ciklas stovi
 }, { passive: true });
 addEventListener('scroll', () => scrollY < innerHeight && kick(), { passive: true });
-addEventListener('resize', () => { heroLayout(); hKey = ''; kick(); });
+let hW = innerWidth;   // telefone slenkant pasislepia / atsiranda adreso juosta — keičiasi tik aukštis; tada išdėstymo neperskaičiuojam (objektai nešokinėja)
+addEventListener('resize', () => {
+  if (innerWidth === hW && matchMedia('(pointer:coarse)').matches) { hKey = ''; kick(); return; }
+  hW = innerWidth; heroLayout(); hKey = ''; kick();
+});
 kick();
 
 /* ═════════ ISTORIJA (atskira sritis: savas kadrų ciklas, veikia tik kai matoma) ═════════ */
