@@ -460,6 +460,10 @@
 <script>
 'use strict';
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+// Perkrovus — visada nuo pradžios (hero): naršyklė neatkuria slinkimo vietos, #žyma pašalinama
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+scrollTo(0, 0);
 {   // telefono įspėjimas: rodomas trumpai, tada pašalinamas (kompiuteryje — iškart)
   const io = document.getElementById('intro');
   if (!matchMedia('(max-width:700px)').matches) io.remove();
