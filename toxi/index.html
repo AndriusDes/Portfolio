@@ -1,0 +1,1898 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>T↔OXI — Torso S-4 × OXI E16</title>
+<meta name="description" content="T↔OXI: your OXI E16 becomes the hands of the Torso S-4. No install, one HTML file, runs in Chrome.">
+<style>
+  :root { --bg:#000; --fg:#e6e6e6; --dim:#7a7a7a; --line:#222; --line2:#2a2a2a; --wire:#888; --edge:#8c8c8c;
+          --acc:#3dff8f; --live:#ffd23f; --blue:#4fa3c7; }
+  * { box-sizing:border-box; }
+  html { background:var(--bg); scroll-snap-type:y mandatory; }   /* viena scena per vieną scroll judesį */
+  #hero, #why, #story .snap, #flow .snap, #sum .snap, #next { scroll-snap-stop:always; }   /* greitas trackpad'o mostas nepraslysta pro sceną (ypač pirmą kartą, kol scena dar piešiama) */
+  body { margin:0; color:var(--fg); font:12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+         text-transform:uppercase; letter-spacing:.08em; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+  body.dragging { cursor:grabbing; user-select:none; }
+  a { color:inherit; text-decoration:none; }
+  .dim { color:var(--dim); }
+
+  /* Bendras drobės fonas — per visą puslapį, sekcijos be ribų */
+  #bg { position:fixed; inset:-24px; z-index:-1; pointer-events:none;
+        background-image:radial-gradient(#242424 1px, transparent 1px); background-size:12px 12px; will-change:transform; }
+
+  .top { position:fixed; inset:0 0 auto 0; z-index:20; display:flex; justify-content:space-between; padding:18px 24px; font-size:11px; color:var(--dim); pointer-events:none; }
+  .top a { pointer-events:auto; } .top a:hover { color:var(--fg); }
+  .top .tlogo { color:var(--fg); font-size:14px; font-weight:200; letter-spacing:.06em; line-height:1; }   /* logotipas visada matomas */
+
+  /* ── Bendri įrankio elementai ── */
+  .pane { background:rgba(11,11,11,.88); box-shadow:0 0 0 1px #2a2a2a; }   /* kaip T↔OXI įrankio panelė — lengva, plona linija */
+  .ph { padding:6px 8px; font-size:9px; color:var(--dim); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; }
+  .bar { position:relative; display:block; height:2px; background:#151515; }
+  .bar b { position:absolute; top:0; bottom:0; left:0; width:0; background:#cfcfcf; }
+  .bar.bi::after { content:""; position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:#444; }
+  .kr0 { fill:none; stroke:#232323; stroke-width:1.4; }
+  .kr  { fill:none; stroke:#bdbdbd; stroke-width:1.4; }
+  .kc circle { fill:#000; stroke:#8c8c8c; stroke-width:1; }
+  /* Izometriniai knob'ai (kaip OXI enkoderiai): LED taškų žiedas + cilindras */
+  .ldo { fill:none; stroke:#262626; stroke-width:2.6; stroke-linecap:round; }
+  .ldo.on { stroke:#d0d0d0; }
+  .ksd { fill:#000; stroke:#bdbdbd; stroke-width:1.2; vector-effect:non-scaling-stroke; }
+  .kcp { fill:#000; stroke:#9a9a9a; stroke-width:.9; vector-effect:non-scaling-stroke; }
+  .kln { stroke:#e6e6e6; stroke-width:1.2; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+  .kc line { stroke:var(--fg); stroke-width:1.5; stroke-linecap:round; }
+  .wb { fill:none; stroke:var(--wire); stroke-width:1; }          /* laidas */
+  .wh { fill:none; stroke-width:1.1; stroke-linecap:round; stroke-dasharray:.22 2; opacity:0; }   /* signalas — brūkšnys, keliaujantis laidu */
+
+  /* ── HERO ── */
+  #hero { position:relative; height:100vh; scroll-snap-align:start; }
+  #hStage { position:absolute; inset:0; overflow:hidden; }
+  #hWires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  #hWires .wb { opacity:.3; }
+  #hWorld { position:absolute; left:50%; top:50vh; width:0; height:0; }
+  /* Atskiri objektai: vos „žiūri“ į pelę (kelių laipsnių posūkis), juos galima tempti */
+  .fl { position:absolute; left:0; top:0; font-size:9px; color:#b5b5b5; cursor:grab; user-select:none; }
+  .fl.drag { cursor:grabbing; }
+  .hkg { display:grid; justify-items:center; gap:4px; }
+  .fl .row { display:grid; grid-template-columns:52px 1fr 24px; align-items:center; gap:8px; padding:5px 8px; }
+  .fl .row span { transition:color .9s; }
+  .fl .row.glow span { color:var(--c); transition:color .15s; }
+  .fl .row[data-hrow="0"] span { color:var(--live); }   /* PITCH — sukama reikšmė (didysis knob'as), visada geltona */
+  .fl .row em { font-style:normal; text-align:right; color:var(--dim); }
+  .fl .row s { grid-column:1 / -1; height:0; margin-top:-8px; }   /* eilutės prievadas per visą plotį: šonai — kortelės kraštai, viršus / apačia — centras */
+  .fl .gh { padding:6px 8px 0; color:var(--dim); font-size:8px; }
+  .hk svg { display:block; overflow:visible; }
+  .hoxi { display:grid; grid-template-columns:repeat(4, 34px); gap:4px; padding:8px; }
+  .hoxi svg { width:34px; height:34px; display:block; }
+  .hoxi .kr0, .hoxi .kr { stroke-width:2.2; stroke-linecap:round; } .hoxi .kr0 { stroke:#262626; } .hoxi .kr.y { stroke:var(--live); } .hoxi .kr.g { stroke:#5fb36b; }   /* LED taškai kaip OXI; K1 — geltona (PITCH), K3 — žalia (CUTOFF, kaip SEQ) */
+  #hkRing { stroke:var(--live); }   /* didysis knob'as — sukama reikšmė geltona */
+  .hseq { display:flex; gap:3px; padding:8px; }
+  .hseq i { width:14px; height:20px; border:1px solid #2e2e2e; border-radius:2px; display:block; position:relative; overflow:hidden; }
+  .hseq i b { position:absolute; left:0; right:0; bottom:0; background:currentColor; opacity:.75; }
+  .hseq i.ph-on { border-color:#bdbdbd; }
+  .hmix { display:flex; gap:10px; padding:10px 12px; align-items:flex-end; }
+  .hmix i { width:5px; height:80px; background:#151515; position:relative; display:block; }
+  .hmix i b { position:absolute; left:0; right:0; bottom:0; background:#cfcfcf; }
+  .chip { padding:5px 8px; white-space:nowrap; }
+  .chip span { color:var(--dim); }
+
+  #hCenter { position:absolute; inset:0; z-index:2; display:grid; place-content:center; text-align:center; gap:22px; pointer-events:none; }
+  .logo { margin:0; font-weight:200; font-size:clamp(56px, 11vw, 140px); line-height:1; letter-spacing:.04em; }
+  .logo span { display:inline-block; }
+  .lead { margin:0; font-size:clamp(12px, 1.3vw, 15px); letter-spacing:.14em; }
+  .facts { color:var(--dim); font-size:10px; letter-spacing:.16em; }
+  .hint { position:absolute; left:0; right:0; bottom:28px; z-index:2; text-align:center; font-size:10px; color:var(--dim); letter-spacing:.2em; pointer-events:none; }
+
+  /* ── WHY (juodraštis) ── */
+  #why { position:relative; height:100vh; scroll-snap-align:start; display:grid; place-content:center; gap:28px; text-align:center; padding:0 24px; }
+  .big { margin:0; font-size:clamp(22px, 4.2vw, 48px); font-weight:200; letter-spacing:.1em; line-height:1.25; }
+  .small { color:var(--dim); font-size:11px; letter-spacing:.16em; }
+  .rv { opacity:0; transform:translateY(14px); transition:opacity .8s, transform .8s; }
+  .rv.in { opacity:1; transform:none; }
+  .rv.d1 { transition-delay:.15s; } .rv.d2 { transition-delay:.3s; }
+  /* Pokalbis: pasakotojas (blankus) → žmogus rašo (didžiosios, rinkimas) → pasakotojo išvada */
+  #why { gap:22px; }
+  .why-n { margin:0; }
+  .why-u { min-height:2.5em; }
+  @media (max-width:700px) { .why-u { min-height:3.75em; } }   /* telefone ilgiausia frazė — 3 eilutės; tekstas nešokinėja */
+  .why-u { white-space:pre-line; transition:opacity .45s ease-in-out; } .why-u b { font-weight:inherit; } .why-u s { text-decoration:none; color:transparent; }
+  .why-u.out { opacity:0; }   /* frazė ne trinama raidėmis, o ramiai užgęsta */
+  .why-u i { display:inline-block; width:.06em; height:.9em; margin:0 -.06em -.08em 0; background:var(--fg); }   /* nulinis plotis — raidės nepasislenka */
+  .why-s { margin:14px 0 0; font-size:clamp(13px, 1.4vw, 16px); letter-spacing:.14em; }
+
+
+  /* Smulkus laisvas tekstas — ant juodo pagrindo, kad drobės taškai netrukdytų skaityti (box-shadow — be poveikio išdėstymui) */
+  .top a, .lead, .facts, .hint, .why-n, .why-s, #story .cap p, #story #scroll, #story .cue span, .fl-cap p, .again, .sm-head p { background:#000; box-shadow:0 0 0 4px #000; }
+  .lead, .facts, .why-n, .why-s, #story .cap p, .sm-head p { justify-self:center; width:fit-content; }
+  .hint, #story #scroll { width:fit-content; margin:0 auto; }
+
+  /* ── ISTORIJA: OXI → T↔OXI → S-4 (hairline SVG, ortografinė kamera) ── */
+  #story { position:relative; height:500vh; }
+  /* Viena scena per vieną scroll judesį: 3 snap taškai, tarp jų — kameros perėjimas */
+  #story .snap { position:absolute; left:0; width:1px; height:100vh; scroll-snap-align:start; pointer-events:none; }
+  #story #stage { position:sticky; top:0; height:100vh; overflow:hidden; }
+  /* 4 scena: T↔OXI ekranas išsiskleidžia į schemą — tos pačios kortelės kaip įrankyje, ramios (be animacijos) */
+  #story #flat { position:absolute; left:0; top:0; opacity:0; visibility:hidden; pointer-events:none; }
+  .sch { position:absolute; left:50%; top:50%; width:900px; height:300px; transform-origin:50% 50%; }
+  .sc { position:absolute; left:calc(var(--x) * 1px); top:calc(var(--y) * 1px); width:180px; height:120px; overflow:hidden; font-size:10px; }
+  .sc .ph { font-size:9px; }
+  .sc-l { padding:5px 0; } .sc-l div { padding:1px 10px; color:var(--dim); line-height:16px; } .sc-l div::before { content:"› "; }
+  .sc-r { padding:6px 10px; display:grid; gap:7px; } .sc-r div { display:grid; grid-template-columns:52px 1fr; gap:8px; align-items:center; color:#cfcfcf; }
+  .sc-g { display:grid; grid-template-columns:repeat(4, 1fr); gap:3px; padding:6px 8px; } .sc-g i { height:18px; border:1px solid var(--line2); display:block; position:relative; }
+  .sc-g i b { position:absolute; left:3px; bottom:3px; height:2px; background:#cfcfcf; }
+  .sc-s { padding:6px 10px; display:grid; gap:5px; } .sc-s div { display:grid; grid-template-columns:repeat(8, 1fr); gap:2px; height:20px; }
+  .sc-s i { border:1px solid var(--line2); display:block; position:relative; } .sc-s i b { position:absolute; left:1px; right:1px; bottom:1px; background:var(--c); opacity:.75; }
+  .sc-a { display:flex; gap:5px; padding:8px; } .sc-a div { flex:1; box-shadow:0 0 0 1px var(--line2); padding:5px 6px; display:grid; gap:4px; }
+  .sc-a span { color:#cfcfcf; } .sc-a u { display:flex; gap:2px; } .sc-a u i { flex:1; height:5px; background:var(--c); }
+  .sc-o { padding:6px 10px; display:grid; gap:6px; } .sc-o div { display:grid; grid-template-columns:18px repeat(6, 1fr); gap:3px; align-items:center; color:var(--dim); font-size:9px; }
+  .sc-o i { height:2px; background:#cfcfcf; display:block; } .sc-o div.dm i { background:#3a3a3a; }
+  .sch svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  .sch path { fill:none; stroke:#e6e6e6; stroke-opacity:.55; stroke-width:.9; stroke-linecap:round; stroke-linejoin:round; }
+  .sch path.dash { stroke-dasharray:2 3; }
+  .sch .m { display:none; }
+  @media (max-width:700px) {
+    .sch { width:360px; height:580px; } .sc { left:calc(var(--mx) * 1px); top:calc(var(--my) * 1px); width:150px; height:106px; }
+    .sc-l { padding:2px 0; } .sc-l div { line-height:13px; } .sc-r, .sc-o { gap:3px; padding:4px 10px; } .sc-g { gap:2px; padding:5px 8px; } .sc-g i { height:15px; } .sc-s { gap:3px; } .sc-s div { height:17px; }   /* telefone tankiau — telpa visa kortelė */
+    .sch .d { display:none; } .sch .m { display:block; }
+  }
+  #story [data-dev] { color:var(--ln); }
+  #story svg#cv { position:absolute; inset:0; width:100%; height:100%; }
+  #story #caps { position:absolute; left:0; right:0; top:0; bottom:8vh; pointer-events:none; text-align:center; }
+  #story .cap.cap-top { top:11vh; bottom:auto; }   /* schema — antraštė viršuje, kaip drobėje 5–8: prasideda T↔OXI dalis */
+  #story .cap { position:absolute; left:0; right:0; bottom:0; display:grid; gap:10px; padding:0 24px; opacity:0; }
+  #story .cap h2 { margin:0; font-weight:200; font-size:clamp(20px, 2.8vw, 32px); letter-spacing:.12em; }
+  #story .cap p { margin:0; color:var(--dim); font-size:11px; letter-spacing:.16em; }
+  #story #scroll { position:absolute; left:0; right:0; bottom:22px; text-align:center; color:var(--dim); font-size:10px; letter-spacing:.2em; pointer-events:none; }
+  /* Linijų hierarchija: kontūras · briauna · detalė. Spalva --ln — kiekvieno įrenginio „ryškumas“ */
+  /* Ryškumas: visi įrenginiai blankūs, paryškėja tik po pele. Perėjimą daro CSS (be JS kadrų, be mirgėjimo) */
+  @property --ln { syntax:'<color>'; inherits:true; initial-value:#7c7c7c; }
+  #story [data-dev] { --ln:#7c7c7c; transition:--ln .6s ease; }
+  #story [data-dev].hot { --ln:#ececec; }
+  #story .lnk { fill:var(--acc); }
+  /* Rodyklės-užuominos: nusipiešia atėjus scenai, švelniai „stumteli“ link taikinio; nematomos — be animacijos */
+  #story .cue { position:absolute; left:0; top:0; pointer-events:none; opacity:0; z-index:3; transition:opacity .45s; }
+  #story .cue svg { position:absolute; left:0; top:0; overflow:visible; }
+  #story .cue path { fill:none; stroke:#e6e6e6; stroke-opacity:.85; stroke-width:.9; stroke-linecap:round; stroke-linejoin:round;
+                     stroke-dasharray:140; stroke-dashoffset:140; transition:stroke-dashoffset 1.1s cubic-bezier(.6,0,.2,1); }
+  #story .cue.on path { stroke-dashoffset:0; }
+  #story .cue.on .mv { animation:nudge 1.8s ease-in-out .9s infinite; }
+  @keyframes nudge { 50% { transform:translate(var(--nx, 0px), var(--ny, 0px)); } }
+  #story .cue span { position:absolute; font-size:10px; line-height:1; letter-spacing:.24em; color:#8a8a8a; white-space:nowrap; }
+  #story .cue.h span { right:46px; top:0; transform:translateY(-50%); }          /* 36 px rodyklė + 10 px tarpas */
+  #story .cue.v span { left:0; top:46px; transform:translateX(-50%); }
+  #story .play.on .solid { fill:rgba(61,255,143,.12); stroke:var(--acc); stroke-opacity:1; }
+  #story .play.on .pi { stroke:var(--acc); fill:var(--acc); }
+  #story .c, #story .e, #story .d { fill:none; stroke:var(--ln); stroke-linejoin:round; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+  #story .c { stroke-width:1.3; }
+  #story .e { stroke-width:.9; }
+  #story .d { stroke-width:.7; stroke-opacity:.55; }
+  #story .solid { fill:var(--bg); }
+  #story .fillv { fill:var(--ln); }
+  /* LED žiedas — vienas apskritimas su taškų brūkšniuote */
+  #story .ledr { fill:none; stroke:#262626; stroke-width:1.7; stroke-linecap:round; }
+  #story .ledr.on { stroke:var(--ln); }
+  #story .tx { fill:var(--ln); font-family:ui-monospace, Menlo, monospace; letter-spacing:.15px; }
+  #story .tx.dim { fill-opacity:.5; }
+  #story [data-d="oxi"].k { cursor:grab; }
+  #story .cell { cursor:grab; }
+  #story .play { cursor:pointer; }
+  .live #story .k.act .ledr.on { stroke:var(--live); }
+  .live #story .cell.act .fillv { fill:var(--live); }
+  .live #story .k.act .ind, .live #story .cell.act > rect.e { stroke:var(--live); stroke-opacity:1; }
+  .live #story .tx.v { fill:var(--live); }
+  #story .wb { fill:none; stroke:#4a4a4a; stroke-width:1; }
+  #story .wh { fill:none; stroke-width:1.1; stroke-linecap:round; opacity:0; }
+  #story .wh.cc { stroke:var(--acc); stroke-dasharray:.22 2; }
+  #story .wh.clk { stroke:var(--fg); stroke-dasharray:.06 2; }
+  #story .play.on .solid { fill:var(--acc); fill-opacity:.7; stroke:var(--acc); stroke-opacity:1; transition:fill-opacity .35s; }
+  #story .play.on.beat .solid { fill-opacity:1; transition:none; }
+  #story .play.on .pi { fill:#000; stroke:#000; }
+  #next { height:100vh; scroll-snap-align:start; display:grid; place-content:center; text-align:center; color:var(--dim); font-size:11px; letter-spacing:.2em; }
+
+  @media (max-width:700px) { .top { padding:14px 16px; } .fl.mhide { display:none; } .hseq i:nth-child(n+9) { display:none; } }
+  .h-trk { width:220px; }
+  @media (max-width:1100px) { .hseq i:nth-child(n+9) { display:none; } }   /* vidutinis langas — SEQ 8 žingsniai, kaip telefone */
+  @media (min-width:701px) and (max-width:1100px) { .h-trk { width:164px; } }   /* Track — OXI pločio, slideriai vis tiek matosi */
+
+  /* ── 5 SCENA: biblioteka (izoliuotas objektas) — parametrai tempiami į Track 1; būsena išsaugoma ── */
+  /* Viena drobė 5–6: objektai keliauja tarp žingsnių (scroll snap), antraštė viršuje — objektai per ją nevažinėja */
+  #flow { position:relative; height:400vh; }
+  #flow .snap { position:absolute; left:0; width:1px; height:100vh; scroll-snap-align:start; pointer-events:none; }
+  #flowStage { position:sticky; top:0; height:100vh; overflow:hidden; }
+  #flowStage .pane { user-select:none; }
+  .fo { position:absolute; left:50%; top:57%; will-change:transform; z-index:1; }
+  #foLib { width:230px; max-height:54vh; }   /* telpa po antrašte */ #lbTrack { width:330px; } #foOxi { width:330px; }
+  #foSeq { width:min(480px, calc(100vw - 402px)); } #foArr { width:min(898px, calc(100vw - 48px)); }   /* SEQ — kiek įmanoma pilno pločio; aranžuotės plotis kompiuteryje = Track + tarpas + SEQ (JS) */
+  #flowStage [hidden] { display:none !important; }
+  .fl-cap { position:absolute; left:0; right:0; top:11vh; text-align:center; display:grid; gap:10px; justify-items:center; padding:0 24px; pointer-events:none; z-index:2; }
+  .fl-cap h2 { margin:0; font-weight:200; font-size:clamp(20px, 2.8vw, 32px); letter-spacing:.12em; }
+  .fl-cap p { margin:0; color:var(--dim); font-size:11px; letter-spacing:.16em; }
+  .again { font:inherit; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); background:none; border:0; padding:4px; cursor:pointer; opacity:0; pointer-events:none; transition:opacity .4s, color .2s; }
+  .again.show { opacity:1; } .fl-cap.on .again.show { pointer-events:auto; } .again:hover { color:var(--fg); }
+  .lb-side { max-height:72vh; display:flex; flex-direction:column; }
+  .lb-list { overflow:auto; padding:6px 0; font-size:11px; }
+  .lb-cat { display:flex; gap:6px; padding:6px 12px; color:var(--dim); cursor:pointer; }
+  .lb-cat:hover, .lb-cat.open { color:var(--fg); }
+  .lb-cat i { width:8px; font-style:normal; transition:transform .2s; }
+  .lb-cat.open i { transform:rotate(90deg); }
+  .lb-item { display:flex; justify-content:space-between; padding:5px 12px 5px 26px; color:#a6a6a6; cursor:grab;
+             background:linear-gradient(#262626, #262626) 16px 0 / 1px 100% no-repeat; }
+  .lb-item:hover { background:var(--fg); color:#000; }
+  .lb-item span { color:#6a6a6a; }   /* CC numeriai — skaitomi (3,9:1) */
+  .lb-item:hover span { color:#444; }
+  .lb-item.in { color:var(--acc); }
+  .lb-track { min-height:220px; }
+  .lb-rows { padding:6px 0 10px; font-size:11px; }
+  .lb-gh { padding:8px 12px 2px; font-size:9px; color:var(--dim); }
+  .lb-row { display:grid; grid-template-columns:70px 1fr 28px 24px 42px 12px; gap:7px; align-items:center; padding:5px 12px; }
+  .lb-row .tg { text-decoration:none; font-size:9px; color:var(--c, var(--acc)); text-align:center; }
+  .lb-row.on span { color:var(--acc); }
+  #flow.s1 .lb-row, #flow.s2 .lb-row { cursor:grab; } #flow.s1 .lb-row:hover, #flow.s2 .lb-row:hover { background:#141414; }
+  .lb-row.new { animation:lbIn .5s ease; }
+  @keyframes lbIn { from { background:#1d3a27; } to { background:transparent; } }
+  .lb-row em { font-style:normal; text-align:right; color:var(--dim); }
+  .lb-row small { color:#6a6a6a; font-size:9px; text-align:right; white-space:nowrap; }   /* CC 112 — vienoje eilutėje */
+  .lb-row b.x { color:#4a4a4a; cursor:pointer; text-align:center; font-weight:normal; }
+  .lb-row b.x:hover { color:var(--fg); }
+  .lb-empty { padding:40px 12px; text-align:center; color:#6a6a6a; font-size:10px; letter-spacing:.2em; }
+  .lb-track.over { box-shadow:0 0 0 1px var(--acc); }
+  .lb-ghost { position:fixed; left:0; top:0; z-index:30; padding:5px 10px; font-size:11px; pointer-events:none; opacity:0; white-space:nowrap; }
+  .lb-ghost.fly { transition:transform 1.1s cubic-bezier(.6,0,.2,1), opacity .3s; }
+  .gh-cur { position:fixed; left:0; top:0; z-index:31; pointer-events:none; opacity:0; transition:opacity .3s; }   /* vaiduoklio pelė */
+  .gh-cur.mv { transition:transform .7s cubic-bezier(.6,0,.2,1), opacity .3s; }
+  .gh-cur svg { display:block; fill:#000; stroke:var(--fg); stroke-width:1; stroke-linejoin:round; transition:transform .12s; transform-origin:1px 1px; }
+  .gh-cur.press svg { transform:scale(.82); }
+  @media (max-width:700px) {
+    .fo { top:50%; } #foLib, #lbTrack, #foOxi, #foSeq { width:min(330px, calc(100vw - 48px)); } #foArr { width:calc(100vw - 48px); } #foLib { max-height:30vh; } #lbTrack { min-height:0; }
+    .lb-side { max-height:52vh; }
+    .lb-row { grid-template-columns:64px 1fr 28px 24px 12px; } .lb-row small { display:none; }   /* telefone juosta lieka — matosi judesys, ne tik skaičiai */
+  }
+
+  /* ── 6 SCENA: OXI (izoliuotas) ← Track 1 eilutės; vienas knob'as — keli parametrai, vienas invertuotas ── */
+
+  .mp-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:5px; padding:8px; }
+  .mp-cell { height:62px; border:1px solid var(--line2); padding:5px 6px 6px; display:flex; flex-direction:column; justify-content:space-between; font-size:9px; cursor:ns-resize; color:#3a3a3a; }
+  .mp-cell.has { color:#cfcfcf; border-color:#3a3a3a; }
+  .mp-cell.act { border-color:var(--acc); }
+  .mp-cell.over { border-color:var(--acc); background:#0f1a13; }
+  .mp-cell .mp-n { display:grid; gap:2px; line-height:1.15; }
+  .mp-cell .mp-n span { cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mp-cell .mp-n span:hover { color:var(--fg); }
+  .mp-cell .mp-n span.inv::after { content:" ⇅"; color:var(--acc); }
+  .mp-cell .bar { height:3px; }
+  .mp-cell:not(.has) .bar b { background:#2a2a2a; }   /* nesusietas knob'as — fone */
+  .mp-cell.act .bar b { background:var(--acc); }
+  .live #flow .mp-cell.act .bar b { background:var(--live); }
+  .mp-rows { padding:6px 0 10px; font-size:11px; }
+  .mp-row { display:grid; grid-template-columns:76px 1fr 30px 18px; gap:8px; align-items:center; padding:5px 12px; cursor:grab; }
+  .mp-row:hover { background:#141414; }
+  .mp-row em { font-style:normal; text-align:right; color:var(--dim); }
+  .mp-row small { font-size:9px; color:var(--acc); text-align:right; }
+  .mp-row.on span { color:var(--acc); }
+  #mpWires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; }
+  #mpWires path { fill:none; stroke:#5a5a5a; stroke-width:1; transition:stroke .3s; }
+  #mpWires path.on { stroke:var(--acc); stroke-width:1.4; }
+  @media (max-width:700px) {
+    .mp-cell { height:48px; } .mp-row { grid-template-columns:1fr 26px 14px; } .mp-row .bar { display:none; }
+  }
+
+  /* ── 7 žingsnis: SEQ ← Track 1; žingsniai piešiami, glide pagal eilutės kreivę ── */
+  .sq7-head { display:flex; justify-content:space-between; }
+  .sq7-t { font-style:normal; } @media (max-width:700px) { .sq7-t { display:none; } }   /* telefone antraštė telpa vienoje eilutėje */
+  .sq7-play { position:relative; display:inline-grid; place-items:center; width:20px; height:16px; margin:-4px 0 -4px 2px; vertical-align:middle;
+               border:1px solid #3a3a3a; font-size:8px; line-height:1; color:var(--fg); cursor:pointer; }
+  .sq7-play::before { content:""; position:absolute; inset:-10px -8px; }   /* didesnė paspaudimo zona */
+  .sq7-play:hover { border-color:var(--fg); } .sq7-play.on { color:var(--acc); border-color:var(--acc); }
+  .sq7-lanes { padding:8px; display:grid; gap:6px; align-content:start; box-sizing:border-box; }
+  .sq7-lanes.over { box-shadow:inset 0 0 0 1px var(--acc); }
+  .sq7-lane.m { opacity:.3; }   /* užmutinta dalyje */
+  .sq7-lane { display:grid; grid-template-columns:78px 1fr 14px; gap:8px; align-items:center; font-size:10px; }
+  .sq7-lab { display:grid; gap:2px; line-height:1.15; }
+  .sq7-lab span { color:#cfcfcf; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sq7-lab b { font-weight:normal; color:var(--dim); cursor:pointer; font-size:9px; }
+  .sq7-lab b:hover { color:var(--fg); }
+  .sq7-steps { display:grid; grid-template-columns:repeat(8, 1fr); gap:3px; height:34px; cursor:ns-resize; }
+  .sq7-steps i { position:relative; border:1px solid var(--line2); display:block; }
+  .sq7-steps i b { position:absolute; left:1px; right:1px; background:var(--c); opacity:.75; }
+  .sq7-steps i.ph { border-color:#bdbdbd; }
+  .sq7-mode { font-weight:normal; cursor:pointer; color:var(--dim); } .sq7-mode s, .sq7-mode u { text-decoration:none; }
+  .sq7-mode s { color:var(--acc); } .sq7-mode u { color:var(--dim); }   /* aktyvus režimas — žalias, kitas — blankus */
+  .sq7-mode.draw s { color:var(--dim); } .sq7-mode.draw u { color:var(--acc); } .sq7-mode:hover s, .sq7-mode:hover u { filter:brightness(1.3); }
+  .sq7-draw { padding:8px; box-sizing:border-box; }
+  .sq7-draw.over { box-shadow:inset 0 0 0 1px var(--acc); }
+  .sq7-chips { display:flex; gap:6px; margin-bottom:8px; }
+  .sq7-chips b { font-weight:normal; font-size:9px; line-height:16px; padding:0 6px; border:1px solid #2a2a2a; color:var(--dim); cursor:pointer; }
+  .sq7-chips b.sel { color:var(--c); border-color:var(--c); }
+  #sq7Svg { display:block; width:100%; height:150px; cursor:crosshair; background:#070707; }
+  #sq7Svg .grid { stroke:#1c1c1c; } #sq7Svg .mid { stroke:#222; stroke-dasharray:1 3; }
+  #sq7Svg path.ln { fill:none; stroke-width:1.2; vector-effect:non-scaling-stroke; opacity:.55; } #sq7Svg path.ln.sel { stroke-width:2; opacity:1; }
+  #sq7Svg circle { fill:none; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+  .sq7-x { color:#4a4a4a; cursor:pointer; text-align:center; } .sq7-x:hover { color:var(--fg); }
+
+  /* ── 8 žingsnis: aranžuotė — kortelės = dainos dalys (ilgis, mute), perjungimas takto riboje ── */
+  #foArr { user-select:none; }   /* viena kortelė: antraštė su mygtukais + dalių juosta */
+  .ar-top { align-items:center; }
+  .ar-top b { font-weight:normal; cursor:pointer; border:1px solid var(--line2); padding:1px 7px; margin-left:6px; line-height:14px; display:inline-block; }
+  .ar-top b:hover { color:var(--fg); } .ar-top b.on { color:var(--acc); border-color:var(--acc); }
+  /* dalių juosta — slenka kortelės viduje (dalių gali būti kiek nori, išdėstymas neauga) */
+  .ar-cards { display:flex; gap:10px; padding:10px; min-height:96px; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; scrollbar-color:#2a2a2a transparent; }
+  .ar-cards::-webkit-scrollbar { height:4px; } .ar-cards::-webkit-scrollbar-thumb { background:#2a2a2a; }
+  .ar-card { flex:0 0 auto; }
+  .ar-card { position:relative; background:#0b0b0b; box-shadow:0 0 0 1px var(--line2); padding:8px 10px; cursor:pointer; transition:box-shadow .3s; }
+  .ar-card.on { box-shadow:0 0 0 1px var(--acc); }
+  .ar-card.q { box-shadow:none; outline:1px dashed var(--acc); outline-offset:0; }
+  .ar-ch { display:flex; justify-content:space-between; gap:12px; font-size:11px; margin-bottom:8px; }
+  .ar-ch em { font-style:normal; color:var(--dim); font-size:10px; cursor:ns-resize; }
+  .ar-ch em:hover { color:var(--fg); }
+  .ar-card.on .ar-ch span { color:var(--acc); }
+  .ar-ln { display:grid; grid-template-columns:14px 1fr; gap:6px; align-items:center; height:12px; margin-top:3px; }
+  .ar-ln u { text-decoration:none; font-size:8px; line-height:10px; text-align:center; border:1px solid var(--c); color:var(--c); cursor:pointer; }
+  .ar-ln.m u { border-color:#3a3a3a; color:#3a3a3a; } .ar-ln.m u::after { content:""; }
+  .ar-dots { display:flex; gap:2px; } .ar-dots i { width:7px; height:7px; background:var(--c); display:block; }
+  .ar-ln.m .ar-dots { opacity:.12; }
+
+  /* ── 9 SCENA: santrauka — atsakymas į WHY: 3 žingsniai (scroll), problema rašoma → atsakymas + Overview sritis ── */
+  #sum { position:relative; height:300vh; }
+  #sum .snap { position:absolute; left:0; width:1px; height:100vh; scroll-snap-align:start; pointer-events:none; }
+  #smStage { position:sticky; top:0; height:100vh; display:grid; align-content:center; justify-items:center; gap:30px; padding:0 24px; }
+  .sm-head { text-align:center; display:grid; gap:10px; }
+  .sm-head h2 { margin:0; font-weight:200; font-size:clamp(22px, 3vw, 36px); letter-spacing:.12em; }
+  .sm-head p { margin:0; color:var(--dim); font-size:11px; letter-spacing:.18em; }
+  .sm-ov { padding:10px 12px 12px; user-select:none; }
+  .sm-grid { display:grid; grid-template-columns:28px repeat(6, 84px); gap:6px; align-items:center; }
+  .sm-ch { font-size:9px; color:var(--dim); text-align:center; transition:color .3s; }
+  .sm-rl { font-size:9px; color:var(--dim); }
+  .sm-cell { position:relative; height:44px; background:#161616; border-radius:3px; box-shadow:inset 0 0 0 1px transparent; transition:box-shadow .3s, opacity .3s; }
+  .sm-cell svg { position:absolute; inset:4px 7px; width:calc(100% - 14px); height:calc(100% - 8px); }
+  .sm-row.dim .sm-cell, .sm-row.dim .sm-rl { opacity:.45; }
+  .sm-row.t1 .sm-rl { color:var(--fg); }
+  .sm-parts { display:flex; align-items:center; gap:6px; margin-top:10px; padding-top:8px; border-top:1px solid var(--line); font-size:9px; color:var(--dim); transition:color .3s; }
+  .sm-parts span { border:1px solid var(--line2); padding:2px 6px; }
+  .sm-ov.hl-hands .sm-row.t1 .sm-cell:not(.empty) { box-shadow:inset 0 0 0 1px var(--acc); }
+  .sm-ov.hl-head .sm-cell { box-shadow:inset 0 0 0 1px #5a5a5a; } .sm-ov.hl-head .sm-row.dim .sm-cell { opacity:.8; } .sm-ov.hl-head .sm-ch, .sm-ov.hl-head .sm-rl { color:var(--fg); }
+  .sm-ov.hl-song .sm-parts { color:var(--fg); } .sm-ov.hl-song .sm-parts span { border-color:var(--acc); }
+  .sm-ov.hl-head { box-shadow:0 0 0 1px var(--acc); }   /* „The whole chain in view“ — visa Overview kortelė */
+  .sm-ov, .sm-ov.hl-head { transition:box-shadow .4s; }
+  /* Pora: žmogus rašo problemą (kaip WHY) → atsakymas (didesnis — jis lieka atmintyje). Vieta rezervuota — niekas nešokinėja */
+  .sm-qa { display:grid; gap:12px; text-align:center; width:min(760px, 100%); }
+  .sm-q { margin:0; min-height:3em; font-size:clamp(12px, 1.3vw, 15px); letter-spacing:.14em; line-height:1.5; color:#bdbdbd; white-space:pre-line; }
+  .sm-q b { font-weight:inherit; } .sm-q s { text-decoration:none; color:transparent; }
+  .sm-q i { display:inline-block; width:.08em; height:1em; margin:0 -.08em -.12em 0; background:#bdbdbd; }
+  .sm-a { margin:0; min-height:2.6em; font-weight:200; font-size:clamp(18px, 2.2vw, 24px); letter-spacing:.12em; line-height:1.3; opacity:0; transition:opacity .6s; }
+  .sm-a.in { opacity:1; }
+  .sm-tip { position:fixed; z-index:30; padding:6px 9px; font-size:10px; pointer-events:none; opacity:0; transition:opacity .15s; white-space:nowrap; line-height:1.6; }
+  .sm-tip em { font-style:normal; color:var(--dim); }
+  @media (max-width:700px) {
+    .sm-ov { width:100%; } .sm-grid { grid-template-columns:22px repeat(6, minmax(0, 1fr)); } #smStage { gap:22px; justify-items:stretch; }   /* per visą plotį — kaip ankstesnėse scenose */
+    .sm-head, .sm-qa { justify-self:center; }
+  }
+
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div class="top"><a class="tlogo" href="#hero">T↔OXI</a><a href="https://andriusdesigner.com">ANDRIUS K.</a></div>
+
+<!-- ── HERO: logo + parallax drobė ── -->
+<section id="hero">
+  <div id="hStage">
+    <svg id="hWires"></svg>
+    <div id="hWorld"></div>
+  </div>
+  <div id="hCenter">
+    <h1 class="logo">T<span id="arrow">↔</span>OXI</h1>
+    <p class="lead">Your OXI E16 becomes the hands of the Torso S-4.</p>
+    <div class="facts">No install · One HTML file · Runs in Chrome</div>
+  </div>
+  <div class="hint">Move · Drag · Scroll</div>
+</section>
+
+<!-- ── WHY: problema (atsakymas — 4 istorijos scena „The whole map“ ir drobė 5–8) ── -->
+<section id="why">
+  <p class="small why-n rv">Real life problem</p>
+  <p class="big why-u" id="whyT" data-t="I see hundreds of parameters.|One page at a time.;I keep the rest|in my head;I polish the loop.|And it stays a loop."></p>
+  <p class="why-s rv" id="whyS">T↔OXI puts it all in view</p>
+</section>
+
+<!-- ── ISTORIJA: OXI → T↔OXI → S-4; viena scena per scroll judesį ── -->
+<section id="story">
+  <div id="stage">
+    <svg id="cv"></svg>
+    <div id="flat"><div class="sch" id="sch"><svg class="d"><path d="M192 60H228M222 56L228 60L222 64"/><path d="M432 60H468M462 56L468 60L462 64"/><path d="M672 60H708M702 56L708 60L702 64"/><path d="M330 132V168M326 138L330 132L334 138M326 162L330 168L334 162"/><path class="dash" d="M570 132V168"/><path d="M566 138L570 132L574 138"/></svg><svg class="m"><path d="M75 117V153M71 147L75 153L79 147"/><path d="M75 277V313M71 307L75 313L79 307"/><path d="M75 437V473M71 467L75 473L79 467"/><path d="M162 213H198M168 209L162 213L168 217M192 209L198 213L192 217"/><path class="dash" d="M162 373H198"/><path d="M168 369L162 373L168 377"/></svg><div class="pane sc" style="--x:0;--y:0;--mx:0;--my:0"><div class="ph"><span>Library</span><span>S-4</span></div><div class="sc-l"><div>DISC</div><div>MOSAIC</div><div>RING</div><div>DEFORM</div><div>VAST</div></div></div><div class="pane sc" style="--x:240;--y:0;--mx:0;--my:160"><div class="ph"><span>Tracks</span><span>CH1–4</span></div><div class="sc-r"><div><span>Track 1</span><i class="bar"><b style="width:62%"></b></i></div><div><span>Track 2</span><i class="bar"><b style="width:40%"></b></i></div><div><span>Track 3</span><i class="bar"><b style="width:78%"></b></i></div><div><span>Track 4</span><i class="bar"><b style="width:28%"></b></i></div></div></div><div class="pane sc" style="--x:480;--y:0;--mx:0;--my:320"><div class="ph"><span>SEQ</span><span>8 steps</span></div><div class="sc-s"><div style="--c:#ffd23f"><i><b style="height:40%"></b></i><i><b style="height:70%"></b></i><i><b style="height:30%"></b></i><i><b style="height:85%"></b></i><i><b style="height:50%"></b></i><i><b style="height:95%"></b></i><i><b style="height:25%"></b></i><i><b style="height:60%"></b></i></div><div style="--c:#5fb36b"><i><b style="height:20%"></b></i><i><b style="height:35%"></b></i><i><b style="height:50%"></b></i><i><b style="height:65%"></b></i><i><b style="height:80%"></b></i><i><b style="height:65%"></b></i><i><b style="height:45%"></b></i><i><b style="height:30%"></b></i></div><div style="--c:#4fa3c7"><i><b style="height:70%"></b></i><i><b style="height:30%"></b></i><i><b style="height:60%"></b></i><i><b style="height:20%"></b></i><i><b style="height:90%"></b></i><i><b style="height:40%"></b></i><i><b style="height:75%"></b></i><i><b style="height:35%"></b></i></div></div></div><div class="pane sc" style="--x:720;--y:0;--mx:0;--my:480"><div class="ph"><span>Overview</span><span>T1–T4</span></div><div class="sc-o"><div class=""><span>T1</span><i style="width:80%"></i><i style="width:50%"></i><i style="width:90%"></i><i style="width:40%"></i><i style="width:70%"></i><i style="width:60%"></i></div><div class="dm"><span>T2</span><i style="width:40%"></i><i style="width:70%"></i><i style="width:30%"></i><i style="width:60%"></i><i style="width:50%"></i><i style="width:80%"></i></div><div class="dm"><span>T3</span><i style="width:60%"></i><i style="width:30%"></i><i style="width:80%"></i><i style="width:50%"></i><i style="width:40%"></i><i style="width:70%"></i></div><div class="dm"><span>T4</span><i style="width:30%"></i><i style="width:60%"></i><i style="width:50%"></i><i style="width:80%"></i><i style="width:60%"></i><i style="width:40%"></i></div></div></div><div class="pane sc" style="--x:240;--y:180;--mx:210;--my:160"><div class="ph"><span>OXI E16</span><span>◂ 1 ▸</span></div><div class="sc-g"><i><b style="width:60%"></b></i><i><b style="width:30%"></b></i><i><b style="width:75%"></b></i><i><b style="width:20%"></b></i><i><b style="width:45%"></b></i><i><b style="width:85%"></b></i><i><b style="width:35%"></b></i><i><b style="width:55%"></b></i><i><b style="width:25%"></b></i><i><b style="width:65%"></b></i><i><b style="width:40%"></b></i><i><b style="width:70%"></b></i><i><b style="width:50%"></b></i><i><b style="width:20%"></b></i><i><b style="width:80%"></b></i><i><b style="width:35%"></b></i></div></div><div class="pane sc" style="--x:480;--y:180;--mx:210;--my:320"><div class="ph"><span>Arrangement</span><span>Loop</span></div><div class="sc-a"><div><span>A</span><u style="--c:#ffd23f"><i style="opacity:0.3"></i><i style="opacity:0.8"></i><i style="opacity:0.5"></i><i style="opacity:0.9"></i></u><u style="--c:#5fb36b"><i style="opacity:0.2"></i><i style="opacity:0.4"></i><i style="opacity:0.6"></i><i style="opacity:0.8"></i></u></div><div><span>B</span><u style="--c:#ffd23f"><i style="opacity:0.6"></i><i style="opacity:0.3"></i><i style="opacity:0.9"></i><i style="opacity:0.5"></i></u><u style="--c:#5fb36b"><i style="opacity:0.08"></i><i style="opacity:0.08"></i><i style="opacity:0.08"></i><i style="opacity:0.08"></i></u></div><div><span>C</span><u style="--c:#ffd23f"><i style="opacity:0.9"></i><i style="opacity:0.5"></i><i style="opacity:0.7"></i><i style="opacity:0.3"></i></u><u style="--c:#5fb36b"><i style="opacity:0.7"></i><i style="opacity:0.5"></i><i style="opacity:0.3"></i><i style="opacity:0.2"></i></u></div></div></div></div></div>
+    <div class="cue h" style="--nx:4px"><svg width="1" height="1"><g class="mv"><path d="M-36 0H0M-6 -4L0 0L-6 4"/></g></svg><span>Turn</span></div>
+    <div class="cue h" style="--nx:4px"><svg width="1" height="1"><g class="mv"><path d="M-36 0H0M-6 -4L0 0L-6 4"/></g></svg><span>Drag</span></div>
+    <div class="cue v" style="--ny:-4px"><svg width="1" height="1"><g class="mv"><path d="M0 36V0M-4 6L0 0L4 6"/></g></svg><span>Play / Stop</span></div>
+    <div id="caps">
+      <div class="cap"><h2>Turn a knob</h2><p>The signal leaves the OXI.</p></div>
+      <div class="cap"><h2>T↔OXI hears it. And answers.</h2><p>Drag a knob on the screen — the OXI's LED ring follows.</p></div>
+      <div class="cap"><h2>Torso S-4 follows. And keeps time.</h2><p>Both sides reach the S-4. Its clock comes back.</p></div>
+      <div class="cap"><h2>Three devices. One instrument.</h2><p>OXI → T↔OXI → S-4. LEDs and clock come back.</p></div>
+      <div class="cap cap-top"><h2>The whole map</h2><p>Library → tracks → sequencer → overview. OXI and arrangement plug in alongside.</p></div>
+    </div>
+    <div id="scroll">Scroll</div>
+  </div>
+  <i class="snap" style="top:0"></i><i class="snap" style="top:100vh"></i><i class="snap" style="top:200vh"></i><i class="snap" style="top:300vh"></i><i class="snap" style="top:400vh"></i>
+</section>
+<!-- ── 5–8: viena drobė — biblioteka → Track 1 → OXI → SEQ → aranžuotė; objektai keliauja, antraštė viršuje ── -->
+<section id="flow">
+  <div id="flowStage">
+    <svg id="mpWires"></svg>
+    <div class="fl-cap" data-s="0"><h2>Pick what you need</h2><p>Drag S-4 parameters onto a track. Every parameter is its own CC.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="fl-cap" data-s="1"><h2>Give it to a knob</h2><p>One knob can move several. Invert one and they move apart.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="fl-cap" data-s="2"><h2>Let it move</h2><p>Drop a parameter onto the sequencer. Glide carries the value from step to step.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="fl-cap" data-s="3"><h2>From loop to song</h2><p>Each card is a part with its own steps, length and mutes. Click one: it takes over on the next bar.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="pane lb-side fo" id="foLib"><div class="ph"><span>Library</span><span>S-4</span></div><div class="lb-list" id="lbList"></div></div>
+    <div class="pane lb-track fo" id="lbTrack"><div class="ph"><span>Track 1</span><span>CH1</span></div><div class="lb-rows" id="lbRows"></div></div>
+    <div class="pane fo" id="foOxi"><div class="ph"><span>OXI E16</span><span>◂ Page 1 ▸</span></div><div class="mp-grid" id="mpGrid"></div></div>
+    <div class="pane fo" id="foSeq"><div class="ph sq7-head"><span>SEQ · <i class="sq7-t">Track 1 · </i><b class="sq7-play" id="sq7Play">▶</b></span><span><b class="sq7-mode" id="sq7Mode" title="Steps / Draw"><s>STEPS</s> · <u>DRAW</u></b> · <span id="sq7Step">STEP —</span></span></div><div class="sq7-lanes" id="sq7Lanes"></div><div class="sq7-draw" id="sq7Draw" hidden><div class="sq7-chips" id="sq7Chips"></div><svg id="sq7Svg" viewBox="0 0 480 150" preserveAspectRatio="none"></svg></div></div>
+    <div class="pane fo" id="foArr"><div class="ph ar-top"><span>Arrangement</span><span><b id="arAdd">+ Add</b><b id="arLoop" class="on">Loop</b></span></div><div class="ar-cards" id="arCards"></div></div>
+  </div>
+  <i class="snap" style="top:0"></i><i class="snap" style="top:100vh"></i><i class="snap" style="top:200vh"></i><i class="snap" style="top:300vh"></i>
+  <div class="pane lb-ghost" id="lbGhost"></div>
+</section>
+<!-- ── 9 SCENA: santrauka — Less holding. More making. ── -->
+<section id="sum">
+  <div id="smStage">
+  <div class="sm-head"><h2>Less holding. More making.</h2><p>Not in your hands. Not in your head.</p></div>
+  <div class="pane sm-ov" id="smOv"><svg width="0" height="0" style="position:absolute"><defs><pattern id="smHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" fill="#2a2a2a"/></pattern></defs></svg><div class="sm-grid" id="smGrid"></div><div class="sm-parts" id="smParts"></div></div>
+  <div class="sm-qa"><p class="sm-q" id="smQ"></p><p class="sm-a" id="smA"></p></div>
+  <div class="pane sm-tip" id="smTip"></div>
+  </div>
+  <i class="snap" style="top:0"></i><i class="snap" style="top:100vh"></i><i class="snap" style="top:200vh"></i>
+</section>
+<section id="next">Next · open T↔OXI</section>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PAL = ['#e4572e', '#f2a541', '#e8d26a', '#5fb36b', '#4fa3c7', '#7d6bd6', '#d46aa8', '#9fd0c5'];
+const GREEN = '#3dff8f', BLUE = '#4fa3c7';
+// SEQ eilučių spalvų tvarka: mūsų geltona → žydra → žalia → kitos; raudona — paskutinė (tik kai parametrų daug)
+const LANE = ['#ffd23f', '#5fb36b', '#4fa3c7', '#9fd0c5', '#7d6bd6', '#f2a541', '#d46aa8', '#e4572e'];
+const TAU = Math.PI * 2;
+const cap = (el, id) => { try { el.setPointerCapture(id); } catch (e) {} };   // pointer capture — be klaidų, jei žymeklis jau dingo
+
+function setBar(b, v, bi) {   // bipolar — nuo vidurio, unipolar — nuo kairės
+  const p = v / 127 * 100;
+  if (bi) { b.style.left = Math.min(50, p) + '%'; b.style.width = Math.abs(p - 50) + '%'; }
+  else { b.style.left = '0'; b.style.width = p + '%'; }
+}
+function ringAttrs(r) { const c = TAU * r; return `r="${r}" transform="rotate(135)" stroke-dasharray="${c * .75} ${c}"`; }   // LED žiedas 270°
+function dotRing(r, v) {   // LED taškų žiedas 270° (21 taškas, kaip OXI): uždegti taškai iki reikšmės
+  const c = TAU * r, st = (c * .75 / 20).toFixed(2), n = Math.round(v / 127 * 20) + 1;
+  return Array(n - 1).fill(`0 ${st}`).concat(`0 ${(c * 2).toFixed(0)}`).join(' ');
+}
+function setRing(el, r, v) { const c = TAU * r; el.setAttribute('stroke-dasharray', `${c * .75 * v / 127} ${c}`); }
+const knobAng = v => -135 + 270 * v / 127;
+
+/* ═════════ Laidai ir signalas ═════════
+   Laidas — bezier su horizontaliomis liestinėmis (kaip įrankyje). Signalas — trumpas spalvotas brūkšnys,
+   ramiai nuslystantis laidu nuo šaltinio (t 0→1). Kadrai sukasi tik kol yra keliaujančių signalų. */
+function cable(a, sa, b, sb, sag = 0) {
+  const dx = Math.max(50, Math.abs(b[0] - a[0]) * .5);
+  return [a[0], a[1], a[0] + sa * dx, a[1] + sag, b[0] + sb * dx, b[1] + sag, b[0], b[1]];
+}
+function wireD(c) { const [x0, y0, x1, y1, x2, y2, x3, y3] = c; return `M${x0.toFixed(1)} ${y0.toFixed(1)}C${x1.toFixed(1)} ${y1.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)} ${x3.toFixed(1)} ${y3.toFixed(1)}`; }
+function hotDash(el, L, seg = .22) {   // rodomas paskutinis signalas; įsižiebia ir užgęsta švelniai
+  const p = L[L.length - 1];
+  if (!p || p.t >= 1) { if (el.o !== 0) { el.style.opacity = 0; el.o = 0; } return; }
+  el.o = Math.sin(Math.PI * p.t) * .2; el.style.opacity = el.o;
+  el.style.strokeDashoffset = seg - p.t * (1 + seg);
+}
+const SPEED = 1.3;   // signalo greitis: laido ilgis per sekundę
+let pulseLists = [];
+function stepPulses(dt) {
+  let any = false;
+  for (const L of pulseLists) {
+    for (const p of L) { const was = p.t; p.t += dt * SPEED; if (was < 1 && p.t >= 1 && p.on) p.on(); }
+    for (let i = L.length - 1; i >= 0; i--) if (L[i].t > 1.25) L.splice(i, 1);
+    if (L.length) any = true;
+  }
+  return any;
+}
+function emit(L, a, on) { if (RM) { on && on(); return; } if (!L.length || L[L.length - 1].t > .85) { L.push({ t: 0, a, on }); kick(); return true; } }
+
+/* ═════════ Izometrinis knob'as: ortografinė kamera (yaw -32°, aukštis 36°), kaip istorijos įrenginiai ═════════ */
+const ISO = {};
+function isoKnob(id, r) {
+  const y = -32 * Math.PI / 180, e = 36 * Math.PI / 180, a = Math.cos(y), b = Math.sin(y) * Math.sin(e), c = -Math.sin(y), d = Math.cos(y) * Math.sin(e), ce = Math.cos(e);
+  const h = r * .75, R = r * 1.55, P = (x, yy, z) => [a * x + c * yy, b * x + d * yy - z * ce];
+  const pts = []; for (let i = 0; i < 24; i++) { const t = i / 24 * TAU; pts.push(P(r * Math.cos(t), r * Math.sin(t), 0), P(r * Math.cos(t), r * Math.sin(t), h)); }
+  pts.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const cr = (o, p, q) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]), lo = [], up = [];
+  for (const p of pts) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  const hull = 'M' + lo.slice(0, -1).concat(up.slice(0, -1)).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+  const circ = TAU * R, step = (circ * 300 / 360 / 20).toFixed(2);
+  ISO[id] = Array.from({ length: 22 }, (_, n) => n ? Array(n - 1).fill(`0 ${step}`).concat(`0 ${(circ * 2).toFixed(0)}`).join(' ') : '0 9999');
+  const M = z => `matrix(${a.toFixed(4)} ${b.toFixed(4)} ${c.toFixed(4)} ${d.toFixed(4)} 0 ${(-z * ce).toFixed(2)})`, W = R * 2 + 8;
+  return `<svg width="${W}" height="${W}" viewBox="${-W / 2} ${-W / 2 - h * .4} ${W} ${W}">`
+    + `<g transform="${M(0)}"><circle class="ldo" r="${R}" transform="rotate(120)" stroke-dasharray="${ISO[id][21]}"/><circle class="ldo on" id="${id}Ring" r="${R}" transform="rotate(120)"/></g>`
+    + `<path class="ksd" d="${hull}"/><g transform="${M(h)}"><circle class="kcp" r="${r}"/><line class="kln" id="${id}Line" y1="${-r * .3}" y2="${-r * .85}"/></g></svg>`;
+}
+
+/* ═════════ HERO ═════════
+   Atskiri objektai (kaip T↔OXI drobėje): kiekvienas vos pasisuka į pelę, juos galima tempti, laidai lieka prisegti.
+   Išdėstymas: D — kompiuteris, M — telefonas (≤ 700 px, mastelis 0,6; mažiau objektų, kad neuždengtų teksto). */
+const hWorld = $('#hWorld');
+const YELLOW = LANE[0], SEQG = LANE[1];   // sukama reikšmė — geltona; SEQ eilutė — žalia (SEQ spalvų eilė)
+const HROWS = [['MOSAIC', 'PITCH', 1, YELLOW], ['RING', 'CUTOFF', 0, SEQG], ['RING', 'TONE', 1, BLUE]];
+const SEQH = Array.from({ length: 16 }, (_, i) => 20 + Math.round(60 * (.5 + .5 * Math.sin(i * .9))));
+const FR = [
+  { id: 'trk', cls: 'pane', D: [451, -29], M: [187, 297], T: [.319, .283], S: [.374, -.036],
+    html: `<div class="ph"><span>Track 1</span><span>CH1</span></div>` + HROWS.map(([g, n, bi, c], i) => `${g !== HROWS[i - 1]?.[0] ? `<div class="gh">${g}</div>` : ''}<div class="row" data-hrow="${i}" style="--c:${c}"><span>${n}</span><i class="bar${bi ? ' bi' : ''}"><b data-hb="${i}"></b></i><em data-hn="${i}">64</em><s data-port="r${i}"></s></div>`).join('') },
+  { id: 'hk', cls: 'hkg', D: [144, -197], M: [159, -260], T: [.262, -.251], S: [.187, -.255], still: true,   // knob'as ir jo parametras — viena grupė
+    html: isoKnob('hk', 40) + `<div class="pane chip" data-port="k0">Mosaic · Pitch <span id="hkVal">064</span></div>` },
+  { id: 'seq', cls: 'pane', D: [124, 222], M: [-180, 309], T: [-.107, .305], S: [.089, .256],
+    html: `<div class="ph"><span>SEQ · Ring cutoff</span><span id="hSeqN">16</span></div><div class="hseq" data-port="s0">` + SEQH.map(h => `<i style="color:${SEQG}"><b style="height:${h}%"></b></i>`).join('') + '</div>' },
+  { id: 'oxi', cls: 'pane', D: [-472, -63], M: [-188, -277], T: [-.343, -.213], S: [-.352, -.004],
+    html: `<div class="ph"><span>OXI E16</span><span>1</span></div><div class="hoxi">` + Array.from({ length: 16 }, (_, i) => `<svg viewBox="-17 -17 34 34" ${i === 0 ? 'data-port="o0"' : i === 13 ? 'data-port="o13"' : ''}><circle class="kr0" r="12" transform="rotate(135)" stroke-dasharray="${dotRing(12, 127)}"/><circle class="kr${i === 0 ? ' y' : i === 2 ? ' g' : ''}" data-hr="${i}" r="12" transform="rotate(135)"/><g class="kc"><circle r="7"/><line data-hl="${i}" y1="-7" y2="-2.5"/></g></svg>`).join('') + '</div>' },
+  { id: 'mix', cls: 'pane mhide', D: [-188, 258], T: [-.407, .146], S: [-.150, .311], port: 'm0',
+    html: `<div class="ph"><span>Mix</span><span>CH16</span></div><div class="hmix">${'<i><b></b></i>'.repeat(4)}</div>` },
+];
+let mobile = innerWidth <= 700;
+const posK = () => mobile ? .6 : Math.min(innerWidth / 1420, innerHeight / 720);   // dizaino koordinatės (patvirtintas vaizdas 1420 × 720) → px
+FR.forEach(f => {
+  f.el = document.createElement('div'); f.el.className = 'fl ' + f.cls + ' h-' + f.id; f.el.innerHTML = f.html;
+  if (f.port) f.el.dataset.port = f.port;
+  [f.x, f.y] = (mobile && f.M) || f.D;
+  hWorld.append(f.el);
+});
+const hSteps8 = () => innerWidth <= 1100;   // telefone ir vidutiniame lange SEQ — 8 žingsniai (2 taktai)
+let hMode = '';
+function heroLayout() {   // perjungus išdėstymą — atgal į jo vietas. M — telefonas, T — vidutinis (≤ 1100), S — mažesnis kompiuteris (≤ 1365), D — kompiuteris.
+  // T ir S pozicijos — lango dalimis: objektai nesimažina, todėl lieka prie kraštų ir neužlipa ant teksto
+  $('#hSeqN').textContent = hSteps8() ? 8 : 16;
+  const w = innerWidth, mode = w <= 700 ? 'M' : w <= 1100 ? 'T' : w <= 1365 ? 'S' : 'D', fr = mode === 'T' || mode === 'S';
+  hMode = mode; mobile = mode === 'M';
+  const k = posK();
+  FR.forEach(f => [f.x, f.y] = fr && f[mode] ? [f[mode][0] * w / k, f[mode][1] * innerHeight / k] : (mobile && f.M) || f.D);
+  heroGuard(k);
+}
+// Objektai neužlipa ant teksto: jei lange per mažai vietos, objektas pastumiamas iki teksto krašto (aukštyn / žemyn, jei netelpa — į šoną).
+// Skaičiuojama tik pasikeitus lango dydžiui, ne kadrais
+function heroGuard(k) {
+  const vw = innerWidth, vh = innerHeight, sc = mobile ? .6 : 1, G = 4;
+  const T = ['.logo', '#hCenter .lead', '.facts'].map(q => $(q).getBoundingClientRect());
+  const U = { l: Math.min(...T.map(r => r.left)), r: Math.max(...T.map(r => r.right)), t: Math.min(...T.map(r => r.top)), b: Math.max(...T.map(r => r.bottom)) };
+  FR.forEach(f => {
+    if (!f.el.offsetWidth) return;
+    const w = f.el.offsetWidth * sc / 2, h = f.el.offsetHeight * sc / 2;
+    let cx = vw / 2 + f.x * k, cy = vh / 2 + f.y * k;
+    if (!(cx + w > U.l - G && cx - w < U.r + G && cy + h > U.t - G && cy - h < U.b + G)) return;
+    const up = cy < (U.t + U.b) / 2, ny = up ? Math.max(44 + h, U.t - G - h) : Math.min(vh - 44 - h, U.b + G + h);
+    if (up ? ny + h <= U.t - G : ny - h >= U.b + G) cy = ny; else cx = cx < vw / 2 ? U.l - G - w : U.r + G + w;
+    f.x = (cx - vw / 2) / k; f.y = (cy - vh / 2) / k;
+  });
+}
+heroLayout();
+
+// Laidai: OXI K2 ↔ Mosaic knob'as (signalas iš OXI; LED feedback atgal) · knob'as → PITCH · OXI K13–K16 → Mix · SEQ → CUTOFF. Kartu jie natūraliai sudaro „T“. v — kurios reikšmės signalas, g — kurią eilutę užžiebia
+const HW = [
+  { s: 'o0', ss: 't', d: 'k0', ds: 'l', c: GREEN, v: 0, m: ['t', 't'] },   // signalas OXI K1 → knob'as (OXI valdo S-4); telefone — lankas virš abiejų, nekerta nei kortelės, nei teksto
+  { s: 'k0', ss: 'r', d: 'r0', ds: 't', c: GREEN, v: 0, g: 0 },
+  { s: 'o13', ss: 'b', d: 'm0', ds: 't', c: GREEN, v: 2 },   // apatinė OXI eilė (K13–K16) = Mix CH16 faderiai
+  { s: 's0', ss: 'r', d: 'r1', ds: 'b', c: SEQG, v: 1, g: 1 },
+];
+const DIR = { l: [-1, 0], r: [1, 0], t: [0, -1], b: [0, 1] };
+const hWires = $('#hWires');
+hWires.innerHTML = HW.map(w => `<path class="wb"/><path class="wh" pathLength="1" stroke="${w.c}"/>`).join('');
+const hPaths = [...hWires.children];
+const hPorts = Object.fromEntries($$('#hero [data-port]').map(e => [e.dataset.port, e]));
+const hRowsEl = $$('[data-hrow]'), hBars = $$('[data-hb]'), hNums = $$('[data-hn]'), hSteps = $$('.hseq i'), hMix = $$('.hmix b');
+const hRings = $$('[data-hr]'), hLines = $$('[data-hl]');
+const HOXI_V = Array.from({ length: 16 }, (_, i) => 20 + (i * 37) % 100);
+hRings.forEach((r, i) => r.setAttribute('stroke-dasharray', dotRing(12, HOXI_V[i])));
+hLines.forEach((l, i) => l.setAttribute('transform', `rotate(${knobAng(HOXI_V[i])})`));
+const hPulses = HW.map(() => []); pulseLists.push(...hPulses);
+const hLast = HW.map(() => 64), hGlowT = [];
+function glow(i) {   // eilutės pavadinimas trumpai užsižiebia savo spalva, kai atkeliauja signalas
+  const r = hRowsEl[i]; if (!r) return; r.classList.add('glow');
+  clearTimeout(hGlowT[i]); hGlowT[i] = setTimeout(() => r.classList.remove('glow'), 140);
+}
+// Laidų sluoksnis slenka su puslapiu → taškai jo koordinatėse, kad laidai liktų prisegti prie objektų
+function portPt(el, side, o) {
+  const r = el.getBoundingClientRect(), f = el.closest('.fl').getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const p = side === 'l' ? [r.left, cy] : side === 'r' ? [r.right, cy] : side === 't' ? [cx, f.top] : [cx, f.bottom];
+  return [p[0] - o.left, p[1] - o.top];
+}
+function cable2(a, da, b, db) {   // valdymo taškai išeina iš prievado jo kryptimi
+  const k = Math.max(40, Math.hypot(b[0] - a[0], b[1] - a[1]) * .45);
+  return [a[0], a[1], a[0] + da[0] * k, a[1] + da[1] * k, b[0] + db[0] * k, b[1] + db[1] * k, b[0], b[1]];
+}
+
+// Fiksuotas knob'as (kaip parametras T↔OXI): reikšmė 0–127 kaupiasi iš pelės judesio, rodyklė sustoja galuose (300°), LED taškai iki galo
+const ENC = { hk: { v: 64, last: null } };
+
+let tx = 0, ty = 0, mx = 0, my = 0, raf = 0, lastT = 0;
+let hKey = '';
+const GLIDE = .3, hG = { a: 0, b: 0, t: 1 };   // CUTOFF glide tarp SEQ žingsnių (s)
+let hCut = null, hDt = 0;
+const hHot = () => HW.forEach((w, i) => hotDash(hPaths[i * 2 + 1], hPulses[i]));
+function renderHero() {
+  const vw = innerWidth, vh = innerHeight, s = clamp(scrollY / vh);
+  if (s >= 1) return;
+  // Niekas nepajudėjo (tik keliauja signalas) → atnaujinam tik brūkšnius, be DOM matavimų
+  const key = `${s}|${mx.toFixed(4)}|${my.toFixed(4)}|${hDrag ? hDrag.f.x + ',' + hDrag.f.y : ''}`;
+  if (key === hKey && hG.t >= 1) return hHot();
+  hKey = key;
+  hWorld.style.transform = `scale(${1 + s * .3})`;
+  hWorld.style.opacity = hWires.style.opacity = 1 - s * 1.4;
+  const c = $('#hCenter');
+  c.style.opacity = 1 - s * 1.7;
+  c.style.transform = `translate(${mx * -4}px, ${my * -3 - s * 80}px)`;
+  $('#arrow').style.transform = `translateX(${mx * 6}px)`;
+  // Objektai vos pasisuka į pelę (ne daugiau kelių laipsnių) — tarsi žiūri ten, kur žiūri lankytojas
+  const px = (mx + 1) / 2 * vw, py = (my + 1) / 2 * vh, sc = mobile ? .6 : 1, k = posK();
+  for (const f of FR) {
+    const cx = vw / 2 + f.x * k, cy = vh / 2 + f.y * k;
+    const ry = f.still ? 0 : clamp((px - cx) / (vw * .5), -1, 1) * 6, rx = f.still ? 0 : -clamp((py - cy) / (vh * .5), -1, 1) * 4;
+    f.el.style.transform = `translate(-50%,-50%) translate(${(f.x * k).toFixed(1)}px, ${(f.y * k).toFixed(1)}px) perspective(900px) rotateY(${ry.toFixed(2)}deg) rotateX(${rx.toFixed(2)}deg) scale(${sc})`;
+  }
+  // Fiksuotas knob'as
+  for (const id of ['hk']) {
+    const l = $(`#${id}Line`), b = l.closest('svg').getBoundingClientRect(), E = ENC[id];
+    if (!b.width) continue;
+    if (E.last !== null) E.v = clamp(E.v + (px - E.last) / (vw * .5) * 127, 0, 127);   // pelė dešinėn — reikšmė didėja (pagal laikrodžio rodyklę)
+    E.last = px;
+    l.setAttribute('transform', `rotate(${(-150 + 300 * E.v / 127).toFixed(1)})`);
+    $(`#${id}Ring`).setAttribute('stroke-dasharray', ISO[id][Math.round(E.v / 127 * 20) + 1]);
+    $(`#${id}Val`).textContent = String(Math.round(E.v)).padStart(3, '0');
+  }
+  // Reikšmės: PITCH ← Mosaic knob'as · CUTOFF ← SEQ žingsnis po žymekliu (su glide) · TONE ← pelė y · Mix ← OXI K13–K16
+  const N = hSteps8() ? 8 : 16, col = Math.min(N - 1, Math.floor((mx + 1) / 2 * N)), tgt = SEQH[col] / 100 * 127;
+  if (hCut === null) hCut = hG.b = tgt;
+  if (tgt !== hG.b) { hG.a = hCut; hG.b = tgt; hG.t = RM ? 1 : 0; if (RM) hCut = tgt; }   // naujas žingsnis — glide iš dabartinės reikšmės
+  if (hG.t < 1) { hG.t = Math.min(1, hG.t + hDt / GLIDE); hCut = lerp(hG.a, hG.b, ease(hG.t)); }   // S kreivė, kaip SEQ numatytoji
+  const mixV = clamp(1 - Math.abs((mx + 1) / 2 * 3)) * 127;
+  const filt = (1 - (my + 1) / 2) * 127, vals = [ENC.hk.v, hCut, (1 - Math.hypot(mx, my) / 1.42) * 127];
+  [vals[0], vals[1], filt].forEach((v, i) => { setBar(hBars[i], v, HROWS[i][2]); hNums[i].textContent = Math.round(v); });
+  HW.forEach((w, i) => {   // tik didesnis judesys siunčia signalą
+    const v = vals[w.v];
+    if (Math.abs(v - hLast[i]) > 24 && emit(hPulses[i], 4, () => w.g !== undefined && glow(w.g))) hLast[i] = v;
+  });
+  // OXI K1 = PITCH (geltona), K3 = CUTOFF (žalia, LED feedback iš SEQ); brūkšnelis sukasi kartu su LED
+  [[0, vals[0]], [2, vals[1]]].forEach(([k, v]) => { hRings[k].setAttribute('stroke-dasharray', dotRing(12, v)); hLines[k].setAttribute('transform', `rotate(${knobAng(v).toFixed(1)})`); });
+  hSteps.forEach((st, i) => st.classList.toggle('ph-on', i === col));
+  // Mix CH16: 4 faderiai = apatinė OXI knob'ų eilė (K13–K16) — reikšmė, LED ir brūkšnelis kartu
+  hMix.forEach((b, i) => {
+    const v = i ? clamp(1 - Math.abs((mx + 1) / 2 * 3 - i) * .4) * 127 : vals[2];
+    b.style.height = v / 1.27 + '%';
+    hRings[12 + i].setAttribute('stroke-dasharray', dotRing(12, v));
+    hLines[12 + i].setAttribute('transform', `rotate(${knobAng(v).toFixed(1)})`);
+  });
+  // Laidai — iš realių ekrano pozicijų; šonai pagal tai, kuris objektas kairiau
+  const o = hWires.getBoundingClientRect();
+  HW.forEach((w, i) => {
+    const src = hPorts[w.s], dst = hPorts[w.d];   // paslėptas objektas (pvz. telefone) — be laido
+    if (!src.getClientRects().length || !dst.getClientRects().length) { hPaths[i * 2].setAttribute('d', ''); hPaths[i * 2 + 1].setAttribute('d', ''); return; }
+    const [ss, ds] = mobile && w.m || [w.ss, w.ds];   // m — kiti šonai telefono išdėstymui
+    const d = wireD(cable2(portPt(src, ss, o), DIR[ss], portPt(dst, ds, o), DIR[ds]));
+    hPaths[i * 2].setAttribute('d', d); hPaths[i * 2 + 1].setAttribute('d', d);
+  });
+  hHot();
+}
+
+// Tempimas: objektą galima perkelti bet kur; laidai perskaičiuojami kiekviename kadre
+let hDrag = null;
+hWorld.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.fl'); if (!el) return;
+  const f = FR.find(q => q.el === el);
+  hDrag = { f, x0: e.clientX, y0: e.clientY, fx: f.x, fy: f.y, sc: posK() };
+  el.classList.add('drag'); cap(el, e.pointerId); e.preventDefault();
+});
+hWorld.addEventListener('pointermove', e => {
+  if (!hDrag) return;
+  hDrag.f.x = hDrag.fx + (e.clientX - hDrag.x0) / hDrag.sc; hDrag.f.y = hDrag.fy + (e.clientY - hDrag.y0) / hDrag.sc;
+  kick();
+});
+hWorld.addEventListener('pointerup', () => { if (hDrag) { hDrag.f.el.classList.remove('drag'); hDrag = null; hKey = ''; kick(); } });
+
+/* ═════════ WHY: atsiradimas slenkant ═════════ */
+const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .4 });
+$$('.rv').forEach(e => { if (!e.closest('#why') || e.classList.contains('why-n')) io.observe(e); });
+/* Žmogus „rašo“ tris frazes: parašo, pastovi, užgęsta, rašo kitą; paskutinė lieka. Vieną kartą, tik kai matoma; išėjus — užbaigiama iškart.
+   Visa frazė iš anksto išdėstyta (likusi dalis permatoma) — raidės atsiranda savo vietoje, centruotas tekstas nejuda */
+{
+  const T = $('#whyT'), ph = T.dataset.t.split(';').map(x => x.replace('|', '\n')), on = document.createElement('b'), off = document.createElement('s'), caret = document.createElement('i');
+  T.append(on, caret, off);
+  let pi = 0, ci = 0, tm = 0, done = false;
+  const show = n => { const p = ph[pi]; on.textContent = p.slice(0, n); off.textContent = p.slice(n); };
+  const finish = () => {
+    clearTimeout(tm); done = true; caret.remove(); T.classList.remove('out'); pi = ph.length - 1; show(ph[pi].length);
+    $('#whyS').classList.add('in');
+  };
+  const step = () => {
+    const p = ph[pi]; show(++ci);
+    if (ci < p.length) return void (tm = setTimeout(step, p[ci - 1] === '\n' ? 260 : 38 + Math.random() * 40));   // gyvas, netolygus rinkimas
+    if (!pi) $('#whyS').classList.add('in');                                  // atsakymas matomas iškart po pirmos frazės — nepraslenkamas
+    if (pi === ph.length - 1) return void (tm = setTimeout(finish, 500));
+    tm = setTimeout(() => {                                                   // perskaityti → užgęsta → kita frazė
+      T.classList.add('out');
+      tm = setTimeout(() => { pi++; ci = 0; show(0); T.classList.remove('out'); tm = setTimeout(step, 300); }, 450);
+    }, 1600);
+  };
+  show(0);
+  new IntersectionObserver(([e]) => {
+    if (done) return;
+    if (e.isIntersecting && !tm) { if (RM) finish(); else tm = setTimeout(step, 700); }
+    else if (!e.isIntersecting && tm) finish();
+  }, { threshold: .4 }).observe(T);
+}
+
+/* ═════════ Įvykiai: rAF tik kai kas nors juda (pelė, scroll, signalas) ═════════ */
+function tick(now) {
+  raf = 0;
+  const dt = Math.min(.05, (now - lastT) / 1000 || 0); lastT = now;
+  const f = RM ? 1 : .12;
+  mx += (tx - mx) * f; my += (ty - my) * f;
+  const busy = stepPulses(dt);
+  $('#bg').style.transform = `translate(${mx * -6}px, ${my * -6}px)`;
+  hDt = dt; renderHero();
+  if (busy || hG.t < 1 || Math.abs(tx - mx) + Math.abs(ty - my) > .002) kick();   // glide baigiasi ir pelei sustojus
+}
+function kick() { if (!raf) { raf = requestAnimationFrame(tick); if (!lastT) lastT = performance.now(); } }
+addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return;
+  tx = e.clientX / innerWidth * 2 - 1; ty = e.clientY / innerHeight * 2 - 1; if (scrollY < innerHeight) kick();   // hero išslinkęs — ciklas stovi
+}, { passive: true });
+addEventListener('scroll', () => scrollY < innerHeight && kick(), { passive: true });
+addEventListener('resize', () => { heroLayout(); hKey = ''; kick(); });
+kick();
+
+/* ═════════ ISTORIJA (atskira sritis: savas kadrų ciklas, veikia tik kai matoma) ═════════ */
+(() => {
+
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = t => t * t * (3 - 2 * t);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NS = 'http://www.w3.org/2000/svg', DEG = Math.PI / 180;
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.append(e); return e; };
+const txt = (parent, x, y, size, s, cls = '') => { const t = el('text', { class: 'tx ' + cls, x, y, 'font-size': size }, parent); t.textContent = s; return t; };
+
+/* ═════════ Geometrija ═════════ */
+function hull(P) {   // Andrew monotone chain — tūrio siluetas
+  P.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of P) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  up.pop(); lo.pop(); return lo.concat(up);
+}
+const poly = P => 'M' + P.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L') + 'Z';
+function rrect(x, y, w, h, r, n = 5) {
+  const P = [], c = [[x + w - r, y + r, -90], [x + w - r, y + h - r, 0], [x + r, y + h - r, 90], [x + r, y + r, 180]];
+  for (const [cx, cy, a0] of c) for (let i = 0; i <= n; i++) { const a = (a0 + 90 * i / n) * DEG; P.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return P;
+}
+// Suapvalinti kvadratai (mygtukai) — vienas path visai eilei
+const keys = (list, s, r = 2) => list.map(([x, y]) => `M${x + r} ${y}h${s - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${s - 2 * r}a${r} ${r} 0 0 1-${r} ${r}h-${s - 2 * r}a${r} ${r} 0 0 1-${r}-${r}v-${s - 2 * r}a${r} ${r} 0 0 1 ${r}-${r}Z`).join('');
+const CIRC = Array.from({ length: 20 }, (_, i) => [Math.cos(i / 20 * 2 * Math.PI), Math.sin(i / 20 * 2 * Math.PI)]);
+
+/* ═════════ Kamera ir įrenginiai ═════════
+   Įrenginiai stovi vietoje ir visada sujungti; scenas keičia tik kamera (rėmas, centras). */
+const C = { yaw: -32 * DEG, el: 36 * DEG, S: 3, cx: 0, cy: 0 };
+function mkP(D) {
+  const cy = Math.cos(C.yaw), sy = Math.sin(C.yaw), ce = Math.cos(C.el), se = Math.sin(C.el);
+  const ct = Math.cos(D.tilt), st = Math.sin(D.tilt), s = C.S, hw = D.w / 2, hd = D.d / 2;
+  return (x, y, z) => {
+    x -= hw; y -= hd;
+    const y0 = y * ct - z * st, z0 = y * st + z * ct + D.lift;
+    const x1 = x * cy - y0 * sy, y1 = x * sy + y0 * cy;
+    return [D.sx + s * x1, D.sy + s * (y1 * se - z0 * ce), y1 * ce + z0 * se];
+  };
+}
+function planeM(P, o, ex, ey) {   // bet kurios plokštumos afininė matrica: 2D turinys mm koordinatėmis
+  const a = P(o[0], o[1], o[2]), b = P(o[0] + ex[0], o[1] + ex[1], o[2] + ex[2]), c = P(o[0] + ey[0], o[1] + ey[1], o[2] + ey[2]);
+  return `matrix(${(b[0] - a[0]).toFixed(4)} ${(b[1] - a[1]).toFixed(4)} ${(c[0] - a[0]).toFixed(4)} ${(c[1] - a[1]).toFixed(4)} ${a[0].toFixed(2)} ${a[1].toFixed(2)})`;
+}
+
+const svg = $('#cv');
+const cabLayer = el('g', {}, svg), devLayer = el('g', {}, svg);
+function Dev(id, o) {
+  const D = Object.assign({ id, sx: 0, sy: 0, lift: 0, tilt: 0 }, o);
+  D.g = el('g', { 'data-dev': id }, devLayer);
+  D.bHull = el('path', { class: 'c solid' }, D.g);
+  D.bUp = el('path', { class: 'e solid' }, D.g);
+  D.top = el('g', {}, D.g);
+  D.kG = el('g', {}, D.g);
+  D.outline = rrect(0, 0, D.w, D.d, D.r);
+  D.kn = [];
+  return D;
+}
+function drawBody(D) {
+  const P = D.P;
+  const lo = D.outline.map(([x, y]) => P(x, y, 0)), up = D.outline.map(([x, y]) => P(x, y, D.h));
+  D.sil = hull(lo.concat(up)); D.bHull.setAttribute('d', poly(D.sil));
+  D.bUp.setAttribute('d', poly(up));
+  D.topM = planeM(P, [0, 0, D.h], [1, 0, 0], [0, 1, 0]);
+  D.top.setAttribute('transform', D.topM);
+}
+// Enkoderiai — cilindrai (siluetas + dangtelis + rodyklė). LED žiedas: blankūs taškai + šviečiantys iki reikšmės
+function addKnobs(D, list, o) {
+  D.ko = o;
+  if (o.leds) {
+    const c = 2 * Math.PI * o.ring, step = (c * o.arc / 360 / (o.dots - 1)).toFixed(3);
+    o.dash = Array.from({ length: o.dots + 1 }, (_, n) => n ? Array(n - 1).fill(`0 ${step}`).concat(`0 ${(c * 2).toFixed(1)}`).join(' ') : '0 999');
+  }
+  D.kn = list.map((k, i) => {
+    k.i = i; k.r = k.r || o.r;
+    k.g = el('g', { class: 'k', 'data-d': D.id, 'data-k': i }, D.kG);
+    if (o.leds) {
+      k.ringG = el('g', {}, k.g);
+      const a = { cx: k.x, cy: k.y, r: o.ring, transform: `rotate(${90 + (360 - o.arc) / 2} ${k.x} ${k.y})` };
+      el('circle', { ...a, class: 'ledr', 'stroke-dasharray': o.dash[o.dots] }, k.ringG);
+      k.lit = el('circle', { ...a, class: 'ledr on' }, k.ringG);
+    }
+    k.hull = el('path', { class: 'c solid' }, k.g);
+    k.capG = el('g', {}, k.g);
+    el('circle', { class: 'e solid', cx: k.x, cy: k.y, r: k.r }, k.capG);
+    k.ind = el('line', { class: 'e ind', x1: k.x, y1: k.y - k.r * .3, x2: k.x, y2: k.y - k.r * .8, transform: `rotate(${k.a ?? 0} ${k.x} ${k.y})` }, k.capG);
+    return k;
+  });
+}
+function drawKnobs(D) {
+  const P = D.P, o = D.ko, zt = D.h + o.h, cap = planeM(P, [0, 0, zt], [1, 0, 0], [0, 1, 0]);
+  for (const k of D.kn) {
+    k.depth = P(k.x, k.y, D.h)[2];
+    if (k.ringG) k.ringG.setAttribute('transform', D.topM);
+    const pts = [];
+    for (const [c, s] of CIRC) { pts.push(P(k.x + k.r * c, k.y + k.r * s, D.h)); pts.push(P(k.x + k.r * c, k.y + k.r * s, zt)); }
+    k.hull.setAttribute('d', poly(hull(pts)));
+    k.capG.setAttribute('transform', cap);
+  }
+  const ord = D.kn.slice().sort((a, b) => a.depth - b.depth);
+  if (ord.some((k, i) => k.g !== D.kG.children[i])) ord.forEach(k => D.kG.append(k.g));
+}
+const indAng = (v, arc = 300) => -arc / 2 + arc * v / 127;
+
+/* ═════════ OXI E16 — proporcijos iš manualo ═════════ */
+const PARAMS = [   // ką kiekvienas knob'as valdo S-4 (tikri parametrų pavadinimai iš S-4 CC lentelės)
+  ['MOSAIC', 'PITCH'], ['RING', 'TONE'], ['RING', 'CUTOFF'], ['MIX', 'LEVEL'],
+  ['MOSAIC', 'CONTOUR'], ['RING', 'TILT'], ['DEFORM', 'TILT'], ['MIX', 'FILTER'],
+  ['DISC', 'SPEED'], ['DISC', 'LEVEL'], ['VAST', 'TONE'], ['MIX', 'PAN'],
+  ['WAVE', 'OFFSET'], ['WAVE', 'SKEW'], ['RANDOM', 'OFFSET'], ['FOLLOW', 'INPUT'],
+];
+const OXI = Dev('oxi', { w: 117, d: 150, h: 11, r: 6.5 });
+{
+  const T = OXI.top;
+  el('rect', { class: 'e', x: 31.9, y: 4.6, width: 53.5, height: 24.5, rx: 1.6 }, T);
+  OXI.oName = txt(T, 36, 14.5, 3, 'K1 PITCH');
+  OXI.oVal = txt(T, 36, 22.5, 3, '064', 'v');
+  // gamintojo logotipas sąmoningai nepiešiamas (teisiškai saugu) — tik ekranas ir knob'ai
+  const KX = [16.8, 44.7, 72.3, 100.4], KY = [47.7, 75.5, 103.5, 131.6], list = [];
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) list.push({ x: KX[i], y: KY[j] });
+  addKnobs(OXI, list, { r: 6.6, h: 8, leds: true, ring: 10.6, dots: 21, arc: 300 });
+}
+
+/* ═════════ Laptop — abstraktus: plokštė, dangtis, ekranas su T↔OXI ═════════ */
+const LAP = Dev('lap', { w: 240, d: 165, h: 6, r: 7 });
+const LID = { L: 150, a: 108 * DEG, t: 3.5, r: 6 };
+LID.out = rrect(0, 0, LAP.w, LID.L, LID.r);
+{
+  LAP.lidHull = el('path', { class: 'c solid' }, LAP.g);
+  LAP.lidFront = el('path', { class: 'e solid' }, LAP.g);
+  LAP.scr = el('g', {}, LAP.g);
+  const S = el('g', { id: 'scrC' }, LAP.scr);   // turinys — jį pakartoja plokščia drobė (4 scena)
+  txt(S, 13, 17, 5, 'T↔OXI');
+  // Ryšiai: žalias kvadratėlis = prijungta (kaip įrankio prievadų indikatoriai)
+  txt(S, 172, 16.6, 3.4, 'OXI', 'dim'); el('rect', { class: 'lnk', x: 181.5, y: 13.6, width: 3, height: 3, rx: .5, fill: '#3dff8f' }, S);
+  txt(S, 196, 16.6, 3.4, 'S-4', 'dim'); el('rect', { class: 'lnk', x: 205.5, y: 13.6, width: 3, height: 3, rx: .5, fill: '#3dff8f' }, S);
+  // OXI klonas: 4×4 langeliai (pavadinimas + reikšmė), kaip įrankio OXI drobė
+  LAP.cells = PARAMS.map(([, n], i) => {
+    const x = 13 + (i % 4) * 25.5, y = 24 + Math.floor(i / 4) * 23.5;
+    const g = el('g', { class: 'cell', 'data-c': i }, S);
+    el('rect', { class: 'e solid', x, y, width: 23, height: 21, rx: .8 }, g);
+    txt(g, x + 2, y + 5.5, 3, n);
+    return { g, f: el('rect', { class: 'fillv', x: x + 2, y: y + 16, width: 0, height: 2.2 }, g) };
+  });
+  // Dešinė: S-4 parametras ir clock
+  txt(S, 122, 29, 3.6, 'S-4 · TRACK 1', 'dim');
+  LAP.s4Name = txt(S, 122, 42, 4.2, '—', 'dim');
+  LAP.s4Bar = el('rect', { class: 'fillv', x: 122, y: 47, width: 0, height: 2.6 }, S);
+  LAP.s4Val = txt(S, 206, 42, 5, '064', 'v');
+  txt(S, 122, 76, 3.4, 'CLOCK ← S-4', 'dim');
+  LAP.beats = Array.from({ length: 4 }, (_, i) => el('rect', { class: 'd', x: 122 + i * 9, y: 80, width: 6, height: 6, rx: .6 }, S));
+  LAP.bar = txt(S, 162, 85.5, 3.4, 'BAR —', 'dim');
+  // <use> kopija CSS taisyklių nepaveldi → tie patys stiliai kaip SVG atributai (spalva — currentColor)
+  for (const n of S.querySelectorAll('*')) {
+    const c = ' ' + (n.getAttribute('class') || '') + ' ';
+    if (/ (e|d) /.test(c)) {
+      n.setAttribute('fill', c.includes(' solid ') ? '#000' : 'none'); n.setAttribute('stroke', 'currentColor');
+      n.setAttribute('stroke-width', c.includes(' d ') ? .7 : .9); n.setAttribute('vector-effect', 'non-scaling-stroke');
+      if (c.includes(' d ')) n.setAttribute('stroke-opacity', .55);
+    }
+    if (/ (fillv|tx) /.test(c)) n.setAttribute('fill', 'currentColor');
+    if (c.includes(' dim ')) n.setAttribute('fill-opacity', .5);
+    if (n.tagName === 'text') n.setAttribute('font-family', 'ui-monospace, Menlo, monospace');
+  }
+}
+
+/* ═════════ Torso S-4 — išdėstymas pagal gamintojo nuotrauką (iš viršaus), abstrakčiai ═════════ */
+const S4 = Dev('s4', { w: 230, d: 148, h: 18, r: 6 });
+{
+  const T = S4.top, B = 14.5;
+  // Ekranas
+  el('rect', { class: 'e', x: 9.8, y: 66.8, width: 89, height: 51.3, rx: 1.5 }, T);
+  S4.sDev = txt(T, 15, 77, 4, 'T1', 'dim');
+  S4.sName = txt(T, 15, 90, 7, '—');
+  S4.sBar = el('rect', { class: 'fillv', x: 15, y: 96, width: 0, height: 3 }, T);
+  S4.sStat = txt(T, 15, 111, 3.8, '■ STOPPED', 'dim');
+  // Mygtukai: project/config · apatinė eilė · dešinė pusė (įrenginiai, copy/clear, track…temp)
+  const C5 = [130.5, 149.2, 167.8, 186.5, 205.1];
+  el('path', { class: 'd', d: keys([[9.8, 39.4], [28.5, 39.4], ...[9.8, 28.5, 47.1, 65.8, 84.4].map(x => [x, 122.8]),
+    ...C5.map(x => [x, 67.3]), [167.8, 104.6], [186.5, 104.6], [205.1, 104.6], ...C5.map(x => [x, 122.8])], B) }, T);
+  // gamintojo logotipas sąmoningai nepiešiamas (teisiškai saugu)
+  S4.playG = el('g', { class: 'play' }, T);
+  el('path', { class: 'e solid', d: keys([[130.5, 104.6]], B) }, S4.playG);
+  S4.playIcon = el('path', { class: 'e pi', d: 'M134.5 108.6l4.5 3.2-4.5 3.2Z' }, S4.playG);
+  // Garsumas + 8 enkoderiai (2 × 4)
+  const KX = [138.3, 162.6, 187.5, 212.4];
+  addKnobs(S4, [{ x: 26.4, y: 22.8, r: 6, a: -40 }, ...KX.map((x, i) => ({ x, y: 22.8, a: i * 70 - 100 })), ...KX.map((x, i) => ({ x, y: 46.6, a: 60 - i * 50 }))],
+    { r: 6.2, h: 7 });
+}
+
+/* ═════════ Kabeliai ir signalai ═════════
+   A: OXI ⇄ T↔OXI (CC ir LED feedback) · B: T↔OXI ⇄ S-4 (CC į S-4, clock atgal). OXI su S-4 tiesiogiai nesujungtas. */
+const CAB = { A: { e: el('path', { class: 'wb' }, cabLayer), d: '' }, B: { e: el('path', { class: 'wb' }, cabLayer), d: '' } };
+function cableD(a, b) {
+  const dx = Math.max(40, Math.abs(b[0] - a[0]) * .5), sag = 6 * C.S;
+  return `M${a[0].toFixed(1)} ${a[1].toFixed(1)}C${(a[0] + dx).toFixed(1)} ${(a[1] + sag).toFixed(1)} ${(b[0] - dx).toFixed(1)} ${(b[1] + sag).toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+}
+const POOL = Array.from({ length: 8 }, () => ({ e: el('path', { class: 'wh', pathLength: 1 }, cabLayer), busy: false }));
+const pulses = [];
+function emitP(c, dir, kind, on) {
+  if (RM) { on && on(); return; }
+  if (kind === 'cc') { const last = pulses.filter(p => p.c === c && p.dir === dir && p.kind === kind).pop(); if (last && last.t < .75) return; }   // retesni signalai — be kapojimo
+  const slot = POOL.find(s => !s.busy); if (!slot) return;
+  slot.busy = true; slot.e.setAttribute('class', 'wh ' + kind); slot.e.setAttribute('d', CAB[c].d);
+  pulses.push({ c, dir, kind, t: 0, on, slot });
+  kick();
+}
+function stepPulses(dt) {
+  for (let i = pulses.length - 1; i >= 0; i--) {
+    const p = pulses[i], e = p.slot.e; p.t += dt * 1.3;
+    if (p.t >= 1) { e.style.opacity = 0; p.slot.busy = false; pulses.splice(i, 1); p.on && p.on(); continue; }
+    const pos = p.dir > 0 ? p.t : 1 - p.t, seg = p.kind === 'clk' ? .06 : .22;
+    e.style.opacity = (Math.sin(Math.PI * p.t) * (p.kind === 'clk' ? .22 : .28)).toFixed(3);
+    e.style.strokeDashoffset = (seg - pos * (1 + seg)).toFixed(4);
+  }
+  return pulses.length > 0;
+}
+
+/* ═════════ Rodyklės-užuominos: Turn (iš kairės) · Drag (iš viršaus) · Play / Stop (iš apačios) ═════════ */
+const CUE = $$('#story .cue'), CUE_DONE = [false, false, false], CUE_GAP = 12;
+// Silueto kraštas: kairiausias x ties y (horizontali rodyklė) / žemiausias y ties x (vertikali)
+function edgeAt(poly, v, axis) {
+  let best = axis === 'x' ? Infinity : -Infinity;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], k = axis === 'x' ? 1 : 0, o = 1 - k;
+    if ((a[k] - v) * (b[k] - v) > 0 || a[k] === b[k]) continue;
+    const q = a[o] + (b[o] - a[o]) * (v - a[k]) / (b[k] - a[k]);
+    best = axis === 'x' ? Math.min(best, q) : Math.max(best, q);
+  }
+  return best;
+}
+function cueDone(i) { if (CUE_DONE[i]) return; CUE_DONE[i] = true; CUE[i].style.opacity = 0; CUE[i].classList.remove('on'); }
+
+/* ═════════ Vienas kelias reikšmei: OXI · T↔OXI · S-4 ═════════ */
+const DEVS = [OXI, LAP, S4];
+const VAL = OXI.kn.map((_, i) => 18 + (i * 37) % 100);
+let act = -1, liveT = 0;
+function show(i) {
+  const k = OXI.kn[i], v = VAL[i];
+  k.lit.setAttribute('stroke-dasharray', OXI.ko.dash[Math.round(v / 127 * 20) + 1]);
+  k.ind.setAttribute('transform', `rotate(${indAng(v).toFixed(1)} ${k.x} ${k.y})`);
+  LAP.cells[i].f.setAttribute('width', (19 * v / 127).toFixed(2));
+}
+function setAct(i) {   // klasės ir pavadinimai — tik pasikeitus aktyviam knob'ui
+  if (i === act) return; act = i;
+  const [dv, n] = PARAMS[i];
+  OXI.kn.forEach((k, j) => k.g.classList.toggle('act', j === i));
+  LAP.cells.forEach((c, j) => c.g.classList.toggle('act', j === i));
+  OXI.oName.textContent = `K${i + 1} ${n}`;
+  S4.sDev.textContent = `T1 · ${dv}`; S4.sName.textContent = n; LAP.s4Name.textContent = `${dv} ${n}`;
+}
+function showVal() {   // besikeičianti reikšmė visuose ekranuose
+  const v = VAL[act], s = String(Math.round(v)).padStart(3, '0');
+  OXI.oVal.textContent = s; LAP.s4Val.textContent = s;
+  S4.sBar.setAttribute('width', (78 * v / 127).toFixed(1)); LAP.s4Bar.setAttribute('width', (80 * v / 127).toFixed(1));
+}
+function touch(i, v, src) {
+  VAL[i] = clamp(v, 0, 127); setAct(i); show(i); showVal();
+  document.body.classList.add('live');
+  clearTimeout(liveT); liveT = setTimeout(() => document.body.classList.remove('live'), 450);
+  const toS4 = () => emitP('B', 1, 'cc');
+  if (src === 'oxi') emitP('A', 1, 'cc', toS4);
+  else { emitP('A', -1, 'cc'); toS4(); }   // T↔OXI → OXI: LED feedback; ir į S-4
+}
+
+// Clock: S-4 siunčia tik grojant. 3 scenoje Play įsijungia pats (žalias ▶); žmogus gali sustabdyti
+let playing = false, clkT = 0, beat = -1, playUser = null;
+function setPlay(on) {
+  playing = on; clearTimeout(clkT);
+  S4.playG.classList.toggle('on', on);
+  S4.sStat.textContent = on ? '▶ PLAY · CLOCK OUT' : '■ STOPPED';
+  if (on) clockLoop();
+}
+function clockLoop() {
+  if (!playing) return;
+  S4.playG.classList.add('beat'); requestAnimationFrame(() => requestAnimationFrame(() => S4.playG.classList.remove('beat')));
+  emitP('B', -1, 'clk', () => {
+    beat++; LAP.beats.forEach((b, i) => { const on = i === beat % 4; b.setAttribute('class', on ? 'lnk' : 'd'); b.setAttribute('fill', on ? '#3dff8f' : 'none'); });
+    LAP.bar.textContent = `BAR ${Math.floor(beat / 4) + 1}`;
+  });
+  clkT = setTimeout(clockLoop, 500);   // 120 BPM, ketvirtinės
+}
+
+/* ═════════ Scenos: kamera [rėmo plotis mm, centras x], įrenginys [pakėlimas, pakreipimas°] ═════════ */
+const POS = { oxi: [-300, 4], lap: [0, 16], s4: [300, 10] };
+const SC = [
+  { cam: [340, -300, 330], f: [0], oxi: [22, -14], lap: [0, 0], s4: [0, 0] },     // OXI arti
+  { cam: [660, -150, 330], camM: [470, -110, 330], f: [0], oxi: [10, -6], lap: [10, 0], s4: [0, 0] },       // OXI + T↔OXI
+  { cam: [800, 110, 330], camM: [520, 170, 330], f: [0], oxi: [0, 0], lap: [6, 0], s4: [14, -8] },         // T↔OXI + S-4 (OXI vos matosi kairėje) — Play didesniame S-4
+  { cam: [1010, 0, 330], f: [0], oxi: [4, -3], lap: [0, 0], s4: [4, -3] },         // visi trys — be naujos sąveikos, tik visuma
+  { cam: [270, 0, 185], f: [1], oxi: [0, 0], lap: [0, 0], s4: [0, 0] },             // T↔OXI ekranas arti
+];
+const story = $('#story'), caps = $$('.cap');
+let tx = 0, ty = 0, mx = 0, my = 0, raf = 0, lastT = 0, gKey = '', P_ = 0;
+const progress = () => { const h = story.offsetHeight - innerHeight, v = -story.getBoundingClientRect().top / h; return h > 0 && Number.isFinite(v) ? clamp(v) : 0; };
+
+function geometry(p) {
+  const vw = innerWidth, vh = innerHeight;
+  const N = SC.length - 1, seg = Math.min(N - 1, Math.floor(p * N)), t = smooth(clamp(p * N - seg)), A = SC[seg], Bn = SC[seg + 1];
+  const mix = k => A[k].map((v, i) => lerp(v, Bn[k][i], t)), mob = vw <= 700, cm = q => mob && q.camM || q.cam;   // telefone — siauresnis kadras sąveikos scenose
+  const [W, cx, H] = cm(A).map((v, i) => lerp(v, cm(Bn)[i], t)), [fz] = mix('f');
+  C.S = Math.min(vw / W, vh / H); C.cx = cx;
+  C.yaw = (-32 + mx * 4) * DEG; C.el = (36 - my * 3) * DEG;
+  for (const D of DEVS) {
+    const [lift, tilt] = mix(D.id);
+    D.lift = lift; D.tilt = tilt * DEG;
+    D.sx = vw / 2 + (POS[D.id][0] - cx) * C.S; D.sy = vh / 2 + POS[D.id][1] * C.S;
+    D.P = mkP(D);
+  }
+  if (fz > 0) {   // 4 scena: T↔OXI ekrano centras — į lango centrą
+    const v = LID.L / 2, q = LAP.P(LAP.w / 2, v * Math.cos(LID.a), LAP.h + v * Math.sin(LID.a));
+    const dx = (vw / 2 - q[0]) * fz, dy = (vh * (vw <= 700 ? .6 : .58) - q[1]) * fz;   // kiek žemiau — viršuje telpa antraštė
+    for (const D of DEVS) { D.sx += dx; D.sy += dy; D.P = mkP(D); }
+  }
+  for (const D of DEVS) { drawBody(D); if (D.kn.length) drawKnobs(D); }
+  // Laptop'o dangtis: atidarytas ~108°, ekranas — plokštuma su T↔OXI turiniu
+  {
+    const P = LAP.P, dy = Math.cos(LID.a), dz = Math.sin(LID.a), ny = dz, nz = -dy;
+    const pt = (u, v, n) => P(u, v * dy - n * ny, LAP.h + v * dz - n * nz);
+    const front = LID.out.map(([u, y]) => pt(u, LID.L - y, 0)), back = LID.out.map(([u, y]) => pt(u, LID.L - y, LID.t));
+    LAP.lidSil = hull(front.concat(back)); LAP.lidHull.setAttribute('d', poly(LAP.lidSil));
+    LAP.lidFront.setAttribute('d', poly(front));
+    LAP.scr.setAttribute('transform', planeM(P, [0, LID.L * dy, LAP.h + LID.L * dz], [1, 0, 0], [0, -dy, -dz]));
+  }
+  // Kabeliai — visada sujungti (už kadro ribų jie tiesiog tęsiasi)
+  CAB.A.d = cableD(OXI.P(OXI.w, OXI.d * .55, OXI.h * .5), LAP.P(0, LAP.d * .4, LAP.h * .5));
+  CAB.B.d = cableD(LAP.P(LAP.w, LAP.d * .4, LAP.h * .5), S4.P(0, S4.d * .55, S4.h * .5));
+  CAB.A.e.setAttribute('d', CAB.A.d); CAB.B.e.setAttribute('d', CAB.B.d);
+  for (const q of pulses) q.slot.e.setAttribute('d', CAB[q.c].d);
+
+  // 4 scena: iš izometrinio ekrano — į schemą virš antraštės (tikro dydžio kortelės, ne didesnės)
+  const g = smooth(clamp((fz - .55) / .45));
+  FLAT.on = g > .9;
+  if (g > 0) {
+    const P = LAP.P, dy = Math.cos(LID.a), dz = Math.sin(LID.a), Q = (u, y) => P(u, (LID.L - y) * dy, LAP.h + (LID.L - y) * dz);
+    const c = [Q(4, 4), Q(236, 4), Q(4, 128), Q(236, 128)], xs = c.map(q => q[0]), ys = c.map(q => q[1]);
+    const b = { l: Math.min(...xs), t: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    const mob = vw <= 700, SW = mob ? 360 : 900, SH = mob ? 580 : 300, k = Math.min(1, (vw - 48) / SW, vh * .6 / SH), w = SW * k, h = SH * k, T = { l: (vw - w) / 2, t: vh * (mob ? .6 : .58) - h / 2, w, h };   // žemiau centro — viršuje antraštė
+    const st = FLAT.el.style;
+    st.visibility = 'visible'; st.opacity = g.toFixed(3);
+    const cw = lerp(b.w, T.w, g), ch = lerp(b.h, T.h, g);
+    st.left = lerp(b.l, T.l, g) + 'px'; st.top = lerp(b.t, T.t, g) + 'px'; st.width = cw + 'px'; st.height = ch + 'px';
+    FLAT.sch.style.transform = `translate(-50%,-50%) scale(${Math.min(cw / SW, ch / SH).toFixed(4)})`;   // schema telpa į ekraną, kol jis auga
+    svg.style.opacity = (1 - g).toFixed(3);   // drobė pakeičia sceną pilnai
+    svg.style.pointerEvents = g > .3 ? 'none' : '';   // nematomi įrenginiai po schema negaudo pelės (be rankytės ten, kur sąveikos nėra)
+  } else if (FLAT.el.style.visibility !== 'hidden') { FLAT.el.style.visibility = 'hidden'; svg.style.opacity = 1; svg.style.pointerEvents = ''; }
+
+  const wS = SC.map((_, i) => clamp(1 - Math.abs(p - i / (SC.length - 1)) * 6));   // kiekvienos scenos svoris
+  caps.forEach((c, i) => c.style.opacity = wS[i].toFixed(3));
+  // Rodyklių taikiniai: OXI K1 (kairėje) · sukamas ekrano langelis · S-4 ▶
+  {
+    const dyL = Math.cos(LID.a), dzL = Math.sin(LID.a), scrPt = (x, y) => LAP.P(x, (LID.L - y) * dyL, LAP.h + (LID.L - y) * dzL);
+    const k1 = OXI.kn[0], a = OXI.P(k1.x, k1.y, OXI.h), b = scrPt(50, 58), c3 = S4.P(137.75, 111.85, S4.h);
+    const T = [
+      [edgeAt(OXI.sil, a[1], 'x') - CUE_GAP, a[1]],                                          // OXI: K1 eilutė, kairysis kraštas
+      [Math.min(edgeAt(LAP.lidSil, b[1], 'x'), edgeAt(LAP.sil, b[1], 'x')) - CUE_GAP, b[1]],  // kompas: langelio eilutė, dangčio kraštas
+      [c3[0], edgeAt(S4.sil, c3[0], 'y') + CUE_GAP],                                          // Torso: po ▶, apatinis kraštas
+    ];
+    CUE.forEach((c, i) => {
+      if (!Number.isFinite(T[i][0]) || !Number.isFinite(T[i][1])) { c.style.opacity = 0; return; }
+      c.style.transform = `translate(${T[i][0].toFixed(1)}px, ${T[i][1].toFixed(1)}px)`;
+      const w = CUE_DONE[i] ? 0 : wS[i];
+      c.style.opacity = w.toFixed(3);
+      c.classList.toggle('on', w > .6);
+    });
+  }
+  $('#scroll').style.opacity = clamp(1 - p * 6);
+}
+
+const FLAT = { el: $('#flat'), sch: $('#sch'), on: false };   // 4 scena: schema (ramios kortelės, be animacijos)
+
+/* ═════════ Automatinis judesys: knob'as pats sukasi pirmyn ir atgal, kol žmogus nepaima ═════════ */
+const AUTO = [[0, 'oxi'], [5, 'toxi'], [2, 'oxi'], [2, 'oxi'], null];   // 1: OXI · 2: ekranas (feedback į OXI) · 3: iki S-4 · 4: visi trys · 5: schema (ramu)
+const scene = () => Math.min(SC.length - 1, Math.round(P_ * (SC.length - 1)));
+let autoT = 0, userUntil = 0, inView = true;
+new IntersectionObserver(es => { inView = es[0].intersectionRatio > .02; if (inView) kick(); }, { threshold: [0, .02, .05] }).observe(story);   // ties kraštu (bottom = 0) — jau nematoma
+
+function tick(now) {
+  raf = 0;
+  const t0 = performance.now(), dt = Math.min(.05, (now - lastT) / 1000 || 0); lastT = now;
+  const f = RM ? 1 : .12;
+  mx += (tx - mx) * f; my += (ty - my) * f;
+  let busy = Math.abs(tx - mx) + Math.abs(ty - my) > .002;
+  // Geometrija — tik kai pajuda scroll / pelė / langas
+  const key = `${innerWidth}|${innerHeight}|${P_.toFixed(4)}|${mx.toFixed(4)}|${my.toFixed(4)}`;
+  if (inView && key !== gKey) { gKey = key; geometry(P_); }   // už ekrano — nieko neskaičiuojam
+  const A = AUTO[scene()];   // schemos scenoje — null: ramu
+  if (A && inView && !RM && !drag && t0 > userUntil) {
+    autoT += dt;
+    touch(A[0], 64 + 46 * Math.sin(autoT * 1.3), A[1]);
+    busy = true;
+  }
+  if (stepPulses(dt)) busy = true;
+  if (busy) kick();
+}
+function kick() { if (!raf) { raf = requestAnimationFrame(tick); if (!lastT) lastT = performance.now(); } }
+
+function onScroll() {
+  P_ = progress();
+  const inStory = story.getBoundingClientRect().bottom > innerHeight * .5;
+  if (scene() >= 2 && inStory) { if (!playing && playUser !== false) setPlay(true); }
+  else { if (playing) setPlay(false); playUser = null; }
+  kick();
+}
+
+/* ═════════ Įvykiai ═════════ */
+let drag = null;
+svg.addEventListener('pointerdown', e => {
+  const k = e.target.closest('[data-d="oxi"].k'), c = e.target.closest('.cell'), pl = e.target.closest('.play');
+  if (pl) { playUser = !playing; setPlay(!playing); cueDone(2); return; }
+  if (!k && !c) return;
+  const i = k ? +k.dataset.k : +c.dataset.c;
+  drag = { i, src: k ? 'oxi' : 'toxi', y: e.clientY, v: VAL[i] }; cueDone(k ? 0 : 1);
+  document.body.classList.add('dragging'); e.preventDefault();
+  touch(i, VAL[i], drag.src);
+});
+addEventListener('pointermove', e => {
+  if (drag) { touch(drag.i, drag.v + (drag.y - e.clientY) * .7, drag.src); return; }
+  if (e.pointerType === 'touch') return;
+  tx = e.clientX / innerWidth * 2 - 1; ty = e.clientY / innerHeight * 2 - 1; if (inView) kick();
+}, { passive: true });
+addEventListener('pointerup', () => { if (drag) { userUntil = performance.now() + 2500; } drag = null; document.body.classList.remove('dragging'); kick(); });
+// Paryškėja tik įrenginys po pele
+svg.addEventListener('pointerover', e => { const d = e.target.closest('[data-dev]'); DEVS.forEach(D => D.g.classList.toggle('hot', D.g === d)); });
+svg.addEventListener('pointerleave', () => DEVS.forEach(D => D.g.classList.remove('hot')));
+addEventListener('scroll', onScroll, { passive: true });
+addEventListener('resize', kick);
+
+OXI.kn.forEach((k, i) => show(i));
+setAct(0); showVal();
+onScroll();
+kick();
+})();
+
+/* ═════════ 5 SCENA: biblioteka → Track 1 ═════════
+   Tikri S-4 parametrai ir CC (iš įrankio). Vaiduoklis įtempia pirmą (tik jei Track tuščias), kitus — žmogus (tempti arba dvigubas spustelėjimas).
+   Būsena gyvuoja tik kol puslapis atidarytas (perkrovus — iš naujo); ją naudoja kita scena (OXI). Jokių nuolatinių ciklų. */
+const TRACK1 = (() => {
+  const LIB = [
+    ['DISC', [['SPEED', 46, 1], ['TEMPO', 47], ['START', 48], ['LENGTH', 49], ['LEVEL', 56, 1], ['DENSITY', 58]]],
+    ['MOSAIC', [['PITCH', 62, 1], ['RATE', 63], ['SIZE', 64], ['CONTOUR', 65, 1], ['SCAN', 66], ['SPRAY', 67], ['WET', 69], ['FEEDBACK', 77]]],
+    ['RING', [['CUTOFF', 78], ['RESONANCE', 79], ['DECAY', 80], ['PITCH', 81, 1], ['TONE', 83, 1], ['WET', 85], ['TILT', 88, 1]]],
+    ['DEFORM', [['DRIVE', 94], ['COMPRESS', 95], ['CRUSH', 96], ['TILT', 97, 1], ['WET', 101]]],
+    ['VAST', [['DELAY', 110], ['REVERB', 112], ['SIZE', 113], ['FEEDBACK', 114], ['TONE', 116, 1], ['DECAY', 117]]],
+  ];
+  const BY = {}; LIB.forEach(([dev, ps], di) => ps.forEach(([n, cc, bi], pi) => BY[cc] = { dev, n, cc, bi: !!bi, order: di * 100 + pi }));
+  try { localStorage.removeItem('toxi.landing.track1'); localStorage.removeItem('toxi.landing.oxi'); } catch (e) {}   // senos versijos atmintis — išvalom
+  // Numatytoji kombinacija — po vieną iš kategorijų: Mosaic PITCH · Ring CUTOFF · Deform DRIVE · Vast REVERB. Žmogaus pridėti — prie jų
+  let rows = [62, 78, 94, 112], demoDone = false;
+  const VALS = {}, TAGS = { k: {}, s: {} }, subs = []; let tagSrc = 'k';   // reikšmės ir žymos išlieka perpiešiant (Track — tas pats objektas visose scenose)
+  const save = () => {};
+  const list = $('#lbList'), out = $('#lbRows'), track = $('#lbTrack'), ghost = $('#lbGhost');
+  const OPEN = new Set(['MOSAIC', 'RING']);
+
+  function renderLib() {
+    list.innerHTML = LIB.map(([dev, ps]) => `<div class="lb-cat${OPEN.has(dev) ? ' open' : ''}" data-dev="${dev}"><i>›</i>${dev}</div>`
+      + (OPEN.has(dev) ? ps.map(([n, cc]) => `<div class="lb-item${rows.includes(cc) ? ' in' : ''}" data-cc="${cc}">${n}<span>CC ${cc}</span></div>`).join('') : '')).join('');
+  }
+  function renderTrack(fresh) {
+    if (!rows.length) { out.innerHTML = '<div class="lb-empty">Drop parameters here</div>'; return; }
+    const sorted = rows.map(cc => BY[cc]).sort((a, b) => a.order - b.order);   // kaip įrankyje — sugrupuota pagal įrenginį
+    let last = '', h = '';
+    for (const p of sorted) {
+      if (p.dev !== last) { h += `<div class="lb-gh">${p.dev}</div>`; last = p.dev; }
+      const t = TAGS[tagSrc][p.cc] || {};
+      h += `<div class="lb-row${p.cc === fresh ? ' new' : ''}${t.on ? ' on' : ''}" data-cc="${p.cc}"><span>${p.n}</span><i class="bar${p.bi ? ' bi' : ''}"><b></b></i><em>064</em><u class="tg" style="${t.c ? '--c:' + t.c : ''}">${t.txt || ''}</u><small>CC ${p.cc}</small><b class="x" title="Remove">×</b></div>`;
+    }
+    out.innerHTML = h;
+    sorted.forEach(p => setVal(p.cc, VALS[p.cc] ?? 64));
+    subs.forEach(f => f());
+  }
+  // Scenos rašo į tą patį Track: reikšmę ir žymą (K1 ⇅, S) — be perpiešimo
+  function setVal(cc, v) {
+    VALS[cc] = v; const r = out.querySelector(`.lb-row[data-cc="${cc}"]`); if (!r) return;
+    setBar(r.querySelector('.bar b'), v, BY[cc].bi); r.querySelector('em').textContent = String(Math.round(v)).padStart(3, '0');
+  }
+  function showTag(cc) {
+    const r = out.querySelector(`.lb-row[data-cc="${cc}"]`); if (!r) return;
+    const t = TAGS[tagSrc][cc] || {}, u = r.querySelector('.tg'); u.textContent = t.txt || ''; u.style.cssText = t.c ? `--c:${t.c}` : ''; r.classList.toggle('on', !!t.on);
+  }
+  function setTag(cc, txt, c, on, src = 'k') { TAGS[src][cc] = { txt, c, on }; if (src === tagSrc) showTag(cc); }   // žyma pagal šaltinį: K — OXI, S — SEQ
+  function tagMode(src) { if (src !== tagSrc) { tagSrc = src; rows.forEach(showTag); } }   // stulpelyje — to žingsnio ryšys
+  function add(cc) {
+    if (!BY[cc] || rows.includes(cc)) return;
+    rows.push(cc); save(); renderTrack(cc); renderLib();
+  }
+  function remove(cc) { rows = rows.filter(c => c !== cc); save(); renderTrack(); renderLib(); }
+
+  // Tempimas iš bibliotekos (rodyklė pele / pirštu); paleidus ant Track — pridedama
+  let drag = null;
+  const over = (x, y) => { const r = track.getBoundingClientRect(); return x > r.left && x < r.right && y > r.top && y < r.bottom; };
+  list.addEventListener('click', e => { const c = e.target.closest('.lb-cat'); if (!c) return; OPEN.has(c.dataset.dev) ? OPEN.delete(c.dataset.dev) : OPEN.add(c.dataset.dev); renderLib(); });
+  list.addEventListener('dblclick', e => { const it = e.target.closest('.lb-item'); if (it) add(+it.dataset.cc); });
+  list.addEventListener('pointerdown', e => {
+    const it = e.target.closest('.lb-item'); if (!it) return;
+    const p = BY[+it.dataset.cc]; drag = { cc: p.cc, moved: false, x0: e.clientX, y0: e.clientY };
+    ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`;
+    ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
+    cap(it, e.pointerId); e.preventDefault();
+  });
+  list.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) { drag.moved = true; ghost.style.opacity = 1; }
+    ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
+    track.classList.toggle('over', over(e.clientX, e.clientY));
+  });
+  list.addEventListener('pointerup', e => {
+    if (!drag) return;
+    if (drag.moved && over(e.clientX, e.clientY)) add(drag.cc);
+    ghost.style.opacity = 0; track.classList.remove('over'); drag = null;
+  });
+  out.addEventListener('click', e => { const x = e.target.closest('.x'); if (x) remove(+x.closest('.lb-row').dataset.cc); });
+
+  // Vaiduoklis: atėjus į sceną ir Track tuščias — pats nutempia MOSAIC · PITCH (vieną kartą)
+  function demo(force) {   // vaiduoklis: įtempia RING · TONE (Track jau turi numatytąją kombinaciją); kartojant — jei jau yra, tik parodo
+    if (!force && (demoDone || RM)) { if (RM) add(83); return; }
+    demoDone = true; if (!OPEN.has('RING')) { OPEN.add('RING'); renderLib(); }
+    const src = list.querySelector('.lb-item[data-cc="83"]'); if (!src) return;
+    { const lr = list.getBoundingClientRect(), sr = src.getBoundingClientRect();   // slenkam tik sąrašą — ne puslapį (scrollIntoView pajudintų ir dokumentą)
+      if (sr.bottom > lr.bottom || sr.top < lr.top) list.scrollTop += sr.top - lr.top - (lr.height - sr.height) / 2; }
+    const a = src.getBoundingClientRect(), b = track.getBoundingClientRect();
+    ghost.classList.remove('fly'); ghost.textContent = 'RING · TONE';
+    ghost.style.transform = `translate(${a.left + 20}px, ${a.top}px)`; ghost.style.opacity = 1;
+    requestAnimationFrame(() => requestAnimationFrame(() => { ghost.classList.add('fly'); ghost.style.transform = `translate(${b.left + 40}px, ${b.top + 60}px)`; }));
+    setTimeout(() => { ghost.style.opacity = 0; add(83); }, 1200);
+  }
+  renderLib(); renderTrack();
+  const again = $('.fl-cap[data-s="0"] .again');
+  const demoAnd = force => { demo(force); setTimeout(() => again.classList.add('show'), 1700); };   // „Show me again“ — kai vaiduoklis baigia
+  again.addEventListener('click', () => demoAnd(true));
+  return { get rows() { return rows.slice(); }, BY, add, setVal, setTag, tagMode, el: out, onRows: f => subs.push(f), activate: () => setTimeout(() => demoAnd(false), 350) };   // kitoms scenoms — tas pats Track
+})();
+
+/* ═════════ 6 SCENA: OXI ← Track 1 ═════════
+   Track 1 eilutes (iš 5 scenos) galima tempti ant OXI knob'ų. Vienas knob'as — keli parametrai; invert — priešinga kryptis
+   (paspaudus pavadinimą langelyje). Vaiduoklis: du parametrai ant K1, antras invertuotas; tada K1 sukasi pats, kol žmogus nepaima.
+   Būsena — tik kol puslapis atidarytas. Kadrai sukasi tik kai scena matoma ir kas nors juda. */
+const SC6 = (() => {
+  const sec = $('#flowStage'), grid = $('#mpGrid'), out = TRACK1.el, wires = $('#mpWires'), ghost = $('#lbGhost');
+  const BY = TRACK1.BY;
+  let MAP = {}, KV = Array(16).fill(64), act = 0, vis = false, autoOn = false, userUntil = 0, t = 0, raf = 0, last = 0, demoDone = false, liveT = 0;
+  const save = () => {};
+  // Vienodi pavadinimai (pvz. Ring TILT ir Deform TILT) — su įrenginio raide, kad būtų aišku, kas kur
+  const label = cc => { const p = BY[cc], dup = TRACK1.rows.some(c => c !== cc && BY[c].n === p.n); return dup ? `${p.dev[0]}·${p.n}` : p.n; };
+  const rowsNow = () => TRACK1.rows.map(cc => BY[cc]).sort((a, b) => a.order - b.order);
+  const knobOf = cc => { for (const k in MAP) { const m = MAP[k].find(q => q[0] === cc); if (m) return { k: +k, inv: m[1] }; } return null; };
+  const pv = (cc) => { const m = knobOf(cc); if (!m) return 64; const v = KV[m.k]; return m.inv ? 127 - v : v; };   // parametro reikšmė iš knob'o (invert — priešingai)
+
+  function prune() { const have = new Set(TRACK1.rows); for (const k in MAP) { MAP[k] = MAP[k].filter(q => have.has(q[0])); if (!MAP[k].length) delete MAP[k]; } }
+  function render() {
+    prune();
+    grid.innerHTML = Array.from({ length: 16 }, (_, k) => {
+      const m = MAP[k] || [];
+      return `<div class="mp-cell${m.length ? ' has' : ''}${k === act && m.length ? ' act' : ''}" data-k="${k}"><div class="mp-n">${m.length ? m.slice(0, 2).map(([cc, inv]) => `<span class="${inv ? 'inv' : ''}" data-cc="${cc}" title="${BY[cc].dev} ${BY[cc].n} · click: invert">${label(cc)}</span>`).join('') + (m.length > 2 ? `<span>+${m.length - 2}</span>` : '') : `K${k + 1}`}</div><i class="bar"><b style="width:${KV[k] / 1.27}%"></b></i></div>`;
+    }).join('');
+    tags(); values(); drawWires();
+  }
+  function tags() {   // Track eilutėms — žyma K1 / K1⇅ (Track pats nesikeičia, tik žyma šalia)
+    for (const cc of TRACK1.rows) { const m = knobOf(cc); TRACK1.setTag(cc, m ? 'K' + (m.k + 1) + (m.inv ? '⇅' : '') : '', null, !!m && m.k === act); }
+  }
+  function values() {   // tik reikšmės — be perpiešimo
+    grid.querySelectorAll('.mp-cell').forEach(c => c.querySelector('.bar b').style.width = KV[+c.dataset.k] / 1.27 + '%');
+    for (const cc of TRACK1.rows) if (knobOf(cc)) TRACK1.setVal(cc, pv(cc));   // susieti parametrai — iš knob'o
+  }
+  function drawWires() {   // tarp artimųjų kraštų: Track kairėje → nuo eilutės dešinės iki knob'o kairės (ir atvirkščiai)
+    const o = sec.getBoundingClientRect(); let h = '';
+    for (const k in MAP) for (const [cc] of MAP[k]) {
+      const c = grid.querySelector(`[data-k="${k}"]`), r = out.querySelector(`.lb-row[data-cc="${cc}"]`); if (!c || !r) continue;
+      const a = c.getBoundingClientRect(), b = r.getBoundingClientRect(), rowLeft = b.left + b.width / 2 < a.left + a.width / 2;
+      const x1 = (rowLeft ? b.right : b.left) - o.left, y1 = b.top + b.height / 2 - o.top, x2 = (rowLeft ? a.left : a.right) - o.left, y2 = a.top + a.height / 2 - o.top;
+      const dx = Math.max(30, Math.abs(x2 - x1) * .5) * (rowLeft ? 1 : -1);
+      h += `<path class="${+k === act ? 'on' : ''}" d="M${x1.toFixed(1)} ${y1.toFixed(1)}C${(x1 + dx).toFixed(1)} ${y1.toFixed(1)} ${(x2 - dx).toFixed(1)} ${y2.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}"/>`;
+    }
+    wires.innerHTML = h;
+  }
+  function map(k, cc, inv = false) {
+    const prev = knobOf(cc); if (prev) MAP[prev.k] = MAP[prev.k].filter(q => q[0] !== cc), MAP[prev.k].length || delete MAP[prev.k];
+    (MAP[k] = MAP[k] || []).push([cc, inv]); act = k; save(); render();
+  }
+  function turn(k, v) {
+    KV[k] = clamp(v, 0, 127);
+    if (k !== act) { act = k; render(); } else values();
+    document.body.classList.add('live'); clearTimeout(liveT); liveT = setTimeout(() => document.body.classList.remove('live'), 450);
+  }
+
+  // Tempimas: eilutė → knob'as (susieti); langelis ↕ → sukti; paspaudimas ant pavadinimo — invert
+  let drag = null;
+  const cellAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest && el.closest('.mp-cell'); };
+  out.addEventListener('pointerdown', e => {
+    if (!vis || e.target.closest('.x')) return;   // 5 žingsnyje eilutės netempiamos ant OXI (× — šalina)
+    const r = e.target.closest('.lb-row'); if (!r) return;
+    const p = BY[+r.dataset.cc]; drag = { type: 'row', cc: p.cc, x0: e.clientX, y0: e.clientY, moved: false };
+    ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`; ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
+    cap(r, e.pointerId); e.preventDefault();
+  });
+  grid.addEventListener('pointerdown', e => {
+    const c = e.target.closest('.mp-cell'); if (!c) return;
+    drag = { type: 'knob', k: +c.dataset.k, y0: e.clientY, x0: e.clientX, v: KV[+c.dataset.k], moved: false, label: e.target.closest('.mp-n span[data-cc]') };
+    cap(c, e.pointerId); e.preventDefault(); userUntil = Infinity;
+  });
+  sec.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) { drag.moved = true; if (drag.type === 'row') ghost.style.opacity = 1; }
+    if (drag.type === 'row') {
+      ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
+      grid.querySelectorAll('.mp-cell').forEach(c => c.classList.remove('over')); const c = cellAt(e.clientX, e.clientY); if (c) c.classList.add('over');
+    } else if (drag.moved) { turn(drag.k, drag.v + (drag.y0 - e.clientY) * .7); drawWires(); }
+  });
+  sec.addEventListener('pointerup', e => {
+    if (!drag) return;
+    if (drag.type === 'row') {
+      ghost.style.opacity = 0; grid.querySelectorAll('.mp-cell').forEach(c => c.classList.remove('over'));
+      const c = drag.moved && cellAt(e.clientX, e.clientY); if (c) map(+c.dataset.k, drag.cc);
+    } else {
+      if (!drag.moved && drag.label) { const cc = +drag.label.dataset.cc, m = MAP[drag.k].find(q => q[0] === cc); m[1] = !m[1]; save(); render(); }   // invert
+      userUntil = performance.now() + 2500; kick();
+    }
+    drag = null;
+  });
+
+  // Vaiduoklis: du parametrai ant K1 — pirmas įprastas, antras invertuotas; tada K1 sukasi pats
+  function fly(cc, k, inv, done) {
+    const r = out.querySelector(`.lb-row[data-cc="${cc}"]`), c = grid.querySelector(`[data-k="${k}"]`); if (!r || !c) return done();
+    const a = r.getBoundingClientRect(), b = c.getBoundingClientRect(), p = BY[cc];
+    ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}${inv ? ' ⇅' : ''}`;
+    ghost.style.transform = `translate(${a.left + 10}px, ${a.top}px)`; ghost.style.opacity = 1;
+    requestAnimationFrame(() => requestAnimationFrame(() => { ghost.classList.add('fly'); ghost.style.transform = `translate(${b.left + 8}px, ${b.top + 18}px)`; }));
+    setTimeout(() => { ghost.style.opacity = 0; map(k, cc, inv); setTimeout(done, 450); }, 1200);
+  }
+  function demo(force) {
+    if (demoDone && !force) return; demoDone = true;
+    if (!force && Object.keys(MAP).length) { autoOn = true; kick(); return; }
+    while (TRACK1.rows.length < 2) TRACK1.add([62, 78].find(cc => !TRACK1.rows.includes(cc)));   // reikia bent dviejų parametrų
+    render();
+    const [a, b] = rowsNow();
+    if (RM) { map(0, a.cc); map(0, b.cc, true); return; }
+    fly(a.cc, 0, false, () => fly(b.cc, 0, true, () => { autoOn = true; kick(); again6.classList.add('show'); }));
+  }
+
+  // Automatinis K1 (ar aktyvaus knob'o) judesys — tik kai scena matoma ir žmogus neliečia
+  function tick(now) {
+    raf = 0; const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
+    if (vis && autoOn && !RM && now > userUntil && MAP[act]) { t += dt; KV[act] = 64 + 50 * Math.sin(t * 1.2); values(); kick(); }
+  }
+  function kick() { if (!raf && vis) raf = requestAnimationFrame(tick); }
+  TRACK1.onRows(() => { prune(); tags(); if (vis) drawWires(); });
+  addEventListener('resize', () => vis && drawWires());
+  const again6 = $('.fl-cap[data-s="1"] .again');
+  again6.addEventListener('click', () => { userUntil = 0; demo(true); });
+  render();
+  return {   // drobės valdikliui: žingsnis aktyvus / ne; laidai perpiešiami, kol objektai juda
+    setVis(v) { if (v === vis) return; vis = v; $('#flow').classList.toggle('s1', v); if (v) { render(); setTimeout(demo, 400); kick(); } },
+    wires: drawWires,
+  };
+})();
+
+/* ═════════ 7 žingsnis: SEQ ← Track 1 (ta pati drobė) ═════════
+   Eilutė = parametras (tempti Track 1 eilutę ant SEQ). Žingsniai piešiami (tempti per stulpelius ↕) arba DRAW režime. Glide — pagal eilutės kreivę
+   (numatytoji — kaip įrankyje). Žingsnis = ketvirtinė, 120 BPM. Reikšmės ir žyma S rašomos į tą patį Track 1.
+   8 žingsnyje taktą perima aranžuotė (hook: dalis, mute). Clock ir kadrai sukasi tik kai žingsnis aktyvus ir groja. */
+const SEQ7 = (() => {
+  const sec = $('#flowStage'), lanesEl = $('#sq7Lanes'), out = TRACK1.el, stepEl = $('#sq7Step'), playEl = $('#sq7Play'), ghost = $('#lbGhost'), BY = TRACK1.BY;
+  const CV_DEF = {   // įrankio numatytosios glide kreivės (S — kaip ranka sukamas knob'as, EXP — lygiai/send'ai, LOG — decay/laikas)
+    S: ['RING CUTOFF', 'RING RESONANCE', 'RING TONE', 'RING TILT', 'RING WET', 'MOSAIC SIZE', 'MOSAIC CONTOUR', 'MOSAIC WET', 'DEFORM TILT', 'DEFORM WET', 'VAST SIZE', 'VAST TONE', 'DISC LEVEL'],
+    EXP: ['MOSAIC FEEDBACK', 'DEFORM DRIVE', 'DEFORM COMPRESS', 'DEFORM CRUSH', 'VAST DELAY', 'VAST REVERB', 'VAST FEEDBACK'],
+    LOG: ['RING DECAY', 'VAST DECAY'],
+  };
+  const CVS = ['LIN', 'S', 'EXP', 'LOG'], CF = { LIN: t => t, S: t => t * t * (3 - 2 * t), EXP: t => t * t, LOG: t => 1 - (1 - t) * (1 - t) };
+  const defCv = p => CVS.find(c => (CV_DEF[c] || []).includes(`${p.dev} ${p.n}`)) || 'LIN';
+  const N = 8;   // 8 žingsniai — pakanka frazei
+  const pattern = (p, seed) => Array.from({ length: N }, (_, k) => Math.round(p.bi ? 64 + 34 * Math.sin(k * 1.6 + seed) * (k % 2 === 0 ? 1 : .6) : 24 + 90 * (.5 + .5 * Math.sin(k * .9 + seed))));
+  let lanes = [], val = {}, stepT0 = 0, step = -1, playing = false, vis = false, clk = 0, raf = 0, demoDone = false, mode = 'steps', brush = null, hook = null;
+  const subs = [], changed = () => subs.forEach(f => f());   // aranžuotės kortelės rodo tas pačias eilutes
+  const drawEl = $('#sq7Draw'), chips = $('#sq7Chips'), svgD = $('#sq7Svg'), modeEl = $('#sq7Mode'), DW = 480, DH = 150, PAD = 8;
+  // DRAW: X — žingsnis, Y — reikšmė; linija rodo tikrą judesį (glide per žingsnį pagal kreivę), ciklas uždaras
+  const dx = k => (k + .5) * DW / N, dy = v => PAD + (1 - v / 127) * (DH - 2 * PAD);
+  function linePath(l) {   // ciklas uždaras: perėjimas 8 → 1 tęsiasi per dešinį kraštą į kairįjį — linija be trūkio
+    const main = [], wrap = [];
+    for (let k = 0; k < N; k++) {
+      const a = l.v[k], b = l.v[(k + 1) % N], x0 = dx(k);
+      for (let j = 0; j <= 10; j++) { const t = j / 10, x = x0 + DW / N * t, y = dy(a + (b - a) * CF[l.cv](t)); (x > DW ? wrap : main).push([x > DW ? x - DW : x, y]); }
+    }
+    const edge = main[main.length - 1];   // x = DW taškas — ta pati vertė kairiajame krašte (x = 0)
+    return 'M' + [[0, edge[1]]].concat(wrap, main).map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
+  }
+  function renderDraw() {
+    chips.innerHTML = lanes.map(l => `<b data-cc="${l.cc}" class="${l.cc === brush ? 'sel' : ''}" style="--c:${l.c}">${BY[l.cc].n}</b>`).join('');
+    let g = ''; for (let k = 0; k <= N; k++) g += `<line class="grid" x1="${k * DW / N}" y1="0" x2="${k * DW / N}" y2="${DH}"/>`;
+    svgD.innerHTML = g + `<line class="mid" x1="0" y1="${dy(64)}" x2="${DW}" y2="${dy(64)}"/>`
+      + lanes.map(l => `<path class="ln${l.cc === brush ? ' sel' : ''}" data-cc="${l.cc}" stroke="${l.c}" d="${linePath(l)}"/>`).join('')
+      + lanes.map(l => `<circle data-cc="${l.cc}" r="4" stroke="${l.c}" cx="-10" cy="-10"/>`).join('');
+  }
+  const curVal = (l, t) => { const a = l.v[(step + N - 1) % N], b = l.v[step]; return a + (b - a) * CF[l.cv](t); };   // iš gyvų reikšmių — žymeklis visada ant kreivės
+  const muted = cc => !!(hook && hook.muted(cc));
+  function drawMarks() {   // žymeklis — apskritimas kiekvienai eilutei, tikroje (glide) reikšmėje
+    if (mode !== 'draw' || step < 0) return;
+    const now = performance.now();
+    for (const l of lanes) {
+      const c = svgD.querySelector(`circle[data-cc="${l.cc}"]`); if (!c) continue;
+      const t = clamp((now - stepT0) / 500);
+      let x = dx((step + N - 1) % N) + DW / N * t; if (x > DW) x -= DW;   // sandūroje — iš dešinio krašto į kairįjį, ant linijos
+      c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', dy(curVal(l, t)).toFixed(1));   // tas pats taškas, kaip linijoje
+    }
+  }
+  function setMode(m) { mode = m; modeEl.classList.toggle('draw', m === 'draw'); lanesEl.hidden = m === 'draw'; drawEl.hidden = m !== 'draw'; if (!brush && lanes[0]) brush = lanes[0].cc; renderDraw(); drawMarks(); }
+
+  const laneOf = cc => lanes.find(l => l.cc === cc);
+  function render() {
+    lanes = lanes.filter(l => TRACK1.rows.includes(l.cc));
+    lanesEl.innerHTML = lanes.length ? lanes.map(l => `<div class="sq7-lane" data-cc="${l.cc}" style="--c:${l.c}"><div class="sq7-lab"><span>${BY[l.cc].n}</span><b data-cv title="Glide curve — click to change">${l.cv}</b></div><div class="sq7-steps">${l.v.map(() => '<i><b></b></i>').join('')}</div><span class="sq7-x" title="Remove lane">×</span></div>`).join('')
+      : '<div class="lb-empty">Drop a parameter here</div>';
+    lanes.forEach(drawLane);
+    if (!laneOf(brush)) brush = lanes[0] ? lanes[0].cc : null;
+    if (mode === 'draw') renderDraw();
+    syncH(); tags(); values(); mark();
+  }
+  // STEPS ir DRAW — vienodo aukščio (perjungus niekas nešokinėja, pelė lieka ties tuo pačiu tašku). Pagrindas — DRAW aukštis;
+  // jei eilučių daugiau, nei telpa — abu auga kartu (DRAW kreivių laukas didėja)
+  function syncH() {
+    const n = lanes.length, need = 16 + n * 34 + Math.max(0, n - 1) * 6, H = Math.max(190, need);
+    lanesEl.style.height = drawEl.style.height = H + 'px'; svgD.style.height = (H - 40) + 'px';
+  }
+  function tags() { for (const cc of TRACK1.rows) { const l = laneOf(cc); TRACK1.setTag(cc, l ? 'S' : '', l ? l.c : null, false, 's'); } }   // Track 1 — tik žyma S eilutės spalva
+  function drawLane(l) {   // stulpelio aukštis = reikšmė; bipolar — nuo vidurio
+    const el = lanesEl.querySelector(`[data-cc="${l.cc}"] .sq7-steps`); if (!el) return;
+    [...el.children].forEach((i, k) => {
+      const v = l.v[k], b = i.firstChild;
+      if (BY[l.cc].bi) { const h = Math.abs(v - 64) / 63 * 50; b.style.top = (v >= 64 ? 50 - h : 50) + '%'; b.style.height = Math.max(3, h) + '%'; b.style.bottom = ''; }
+      else { b.style.top = ''; b.style.bottom = '1px'; b.style.height = Math.max(4, v / 127 * 100) + '%'; }
+    });
+  }
+  function values() { for (const l of lanes) if (val[l.cc] !== undefined) TRACK1.setVal(l.cc, val[l.cc]); }   // į tą patį Track 1
+  function mark() {   // tik klasės ir tekstai — be perpiešimo
+    lanesEl.querySelectorAll('.sq7-lane').forEach(el => { el.classList.toggle('m', muted(+el.dataset.cc)); [...el.querySelector('.sq7-steps').children].forEach((i, k) => i.classList.toggle('ph', k === step)); });
+    stepEl.textContent = step < 0 ? 'STEP —' : `STEP ${step + 1}/${N}`; drawMarks();   // SEQ antraštė tokia pati visose scenose (dalis rodoma tik aranžuotės kortelėje)
+  }
+  function addLane(cc) {
+    if (laneOf(cc) || !BY[cc]) return;
+    lanes.push({ cc, c: LANE[lanes.length % LANE.length], cv: defCv(BY[cc]), v: pattern(BY[cc], lanes.length * 1.7 + cc * .1) });   // spalva — automatiškai, kaip įrankyje
+    render(); changed(); autoPlay();
+  }
+
+  // Clock (120 BPM, ketvirtinė = žingsnis) → kiekviena eilutė per žingsnį pereina į kitą reikšmę pagal kreivę. 8 žingsnyje — aranžuotės taktas
+  function setPlay(on) { playing = on && vis; playEl.classList.toggle('on', playing); clearTimeout(clk); if (playing) tickStep(); else mark(); }
+  let stopped = false;   // žmogus paspaudė Stop — automatika (scenos atėjimas, vaiduoklis, nauja eilutė) Play nebeįjungia
+  const autoPlay = () => { if (!stopped) setPlay(true); };
+  function tickStep() {
+    if (!playing) return;
+    const s = hook ? hook.tick() : (step + 1) % N;
+    if (s < 0) return setPlay(false);   // aranžuotė be Loop — sustoja po paskutinės dalies
+    step = s; stepT0 = performance.now(); mark();
+    kick(); clk = setTimeout(tickStep, 500);
+  }
+  function frame(now) {
+    raf = 0;
+    const t = clamp((now - stepT0) / 500);
+    for (const l of lanes) if (!muted(l.cc)) val[l.cc] = curVal(l, t);   // užmutinta eilutė parametro nekeičia
+    values(); drawMarks(); if (t < 1 && vis) kick();
+  }
+  function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+
+  // Tempimas: Track 1 eilutė → SEQ (nauja eilutė); piešimas per stulpelius; kreivė; ×
+  let drag = null, touched = false;
+  out.addEventListener('pointerdown', e => {
+    if (!vis || e.target.closest('.x')) return;   // tik 7–8 žingsnyje (6 žingsnyje eilutės keliauja ant OXI)
+    const r = e.target.closest('.lb-row'); if (!r) return;
+    const p = BY[+r.dataset.cc]; drag = { type: 'row', cc: p.cc, x0: e.clientX, y0: e.clientY, moved: false };
+    ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`; ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
+    cap(r, e.pointerId); e.preventDefault();
+  });
+  const paint = (x, y) => {   // reikšmė iš žymeklio aukščio stulpelyje
+    const el = document.elementFromPoint(x, y), i = el && el.closest && el.closest('.sq7-steps i'); if (!i) return;
+    const laneEl = i.closest('.sq7-lane'), l = laneOf(+laneEl.dataset.cc), k = [...i.parentNode.children].indexOf(i), r = i.getBoundingClientRect();
+    l.v[k] = Math.round(clamp(1 - (y - r.top) / r.height) * 127); drawLane(l); changed();
+  };
+  const paintDraw = (x, y) => {   // DRAW: teptuko (pažymėtos) eilutės žingsnis po žymekliu
+    const l = laneOf(brush); if (!l) return;
+    const r = svgD.getBoundingClientRect(), k = Math.min(N - 1, Math.max(0, Math.floor((x - r.left) / r.width * N)));
+    l.v[k] = Math.round(clamp(1 - ((y - r.top) / r.height * DH - PAD) / (DH - 2 * PAD)) * 127);
+    svgD.querySelector(`path[data-cc="${l.cc}"]`).setAttribute('d', linePath(l)); drawLane(l); changed();
+    if (step >= 0 && !muted(l.cc)) { val[l.cc] = curVal(l, clamp((performance.now() - stepT0) / 500)); values(); drawMarks(); }   // piešiant — žymeklis iškart ant naujos kreivės
+  };
+  modeEl.addEventListener('click', () => setMode(mode === 'draw' ? 'steps' : 'draw'));
+  chips.addEventListener('click', e => { const b = e.target.closest('b'); if (b) { brush = +b.dataset.cc; renderDraw(); drawMarks(); } });
+  svgD.addEventListener('pointerdown', e => { drag = { type: 'draw' }; cap(svgD, e.pointerId); paintDraw(e.clientX, e.clientY); e.preventDefault(); });
+  lanesEl.addEventListener('pointerdown', e => {
+    if (e.target.closest('[data-cv]')) { const l = laneOf(+e.target.closest('.sq7-lane').dataset.cc); l.cv = CVS[(CVS.indexOf(l.cv) + 1) % CVS.length]; e.target.textContent = l.cv; return; }
+    if (e.target.closest('.sq7-x')) { const cc = +e.target.closest('.sq7-lane').dataset.cc; lanes = lanes.filter(l => l.cc !== cc); render(); changed(); return; }
+    if (!e.target.closest('.sq7-steps')) return;
+    drag = { type: 'paint' }; cap(lanesEl, e.pointerId); paint(e.clientX, e.clientY); e.preventDefault();
+  });
+  sec.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (drag.type === 'paint') return paint(e.clientX, e.clientY);
+    if (drag.type === 'draw') return paintDraw(e.clientX, e.clientY);
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) { drag.moved = true; ghost.style.opacity = 1; }
+    ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
+    const tgt = mode === 'draw' ? drawEl : lanesEl, r = tgt.getBoundingClientRect(); tgt.classList.toggle('over', e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom);
+  });
+  sec.addEventListener('pointerup', () => {
+    if (drag && drag.type === 'row') {
+      ghost.style.opacity = 0;
+      if (drag.moved && (lanesEl.classList.contains('over') || drawEl.classList.contains('over'))) { addLane(drag.cc); brush = drag.cc; if (mode === 'draw') renderDraw(); }
+      lanesEl.classList.remove('over'); drawEl.classList.remove('over');
+    }
+    drag = null;
+  });
+  playEl.addEventListener('click', () => { setPlay(!playing); stopped = !playing; });
+
+  // Vaiduoklis: pirmą Track 1 eilutę nutempia ant SEQ (tik kai SEQ tuščias); pusėje sekos — DRAW
+  const again = $('.fl-cap[data-s="2"] .again'), done = () => again.classList.add('show');
+  function demo(force) {
+    if (demoDone && !force) return; demoDone = true;
+    if (lanes.length) { autoPlay(); if (force) setTimeout(() => ghostDraw(done), 300); else done(); return; }
+    const want = [62, 78, 112];   // MOSAIC PITCH · RING CUTOFF · VAST REVERB — po vieną iš skirtingų įrenginių
+    want.forEach(cc => { if (!TRACK1.rows.includes(cc)) TRACK1.add(cc); });
+    if (RM) { want.forEach(addLane); return done(); }
+    const one = i => {
+      if (touched || !vis) { ghost.style.opacity = 0; return done(); }
+      if (i >= want.length) return setTimeout(() => ghostDraw(done), N * 250 + 300);   // pagroja vieną frazę — tada DRAW
+      const cc = want[i], r = out.querySelector(`.lb-row[data-cc="${cc}"]`), p = BY[cc];
+      if (!r || laneOf(cc)) return one(i + 1);
+      const a = r.getBoundingClientRect(), b = lanesEl.getBoundingClientRect();
+      ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`; ghost.style.transform = `translate(${a.left + 10}px, ${a.top}px)`; ghost.style.opacity = 1;
+      requestAnimationFrame(() => requestAnimationFrame(() => { ghost.classList.add('fly'); ghost.style.transform = `translate(${b.left + 30}px, ${b.top + 30 + i * 40}px)`; }));
+      setTimeout(() => { ghost.style.opacity = 0; addLane(cc); if (i === 0) autoPlay(); setTimeout(() => one(i + 1), 250); }, 1200);
+    };
+    one(0);
+  }
+  // Vaiduoklio pelė: matomas žymeklis nuvažiuoja iki mygtuko ir „paspaudžia“ — kad būtų aišku, kas perjungė režimą
+  const cur = document.createElement('div'); cur.className = 'gh-cur'; cur.innerHTML = '<svg width="14" height="18" viewBox="0 0 14 18"><path d="M1 1v14l3.6-3.4 2.6 5.6 2.4-1.1-2.6-5.5H12z"/></svg>'; document.body.append(cur);
+  function clickAt(el, cb) {
+    const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    if (!+cur.style.opacity) { cur.classList.remove('mv'); cur.style.transform = `translate(${x - 70}px, ${y + 50}px)`; }
+    requestAnimationFrame(() => requestAnimationFrame(() => { cur.classList.add('mv'); cur.style.opacity = 1; cur.style.transform = `translate(${x}px, ${y}px)`; }));
+    setTimeout(() => { cur.classList.add('press'); setTimeout(() => { cur.classList.remove('press'); cb(); }, 160); }, 750);
+  }
+  const curOff = () => { cur.style.opacity = 0; };
+  // Vaiduoklis DRAW režime: pele paspaudžia DRAW, užpiešia atsitiktinę kreivę ir paspaudžia STEPS (jei žmogus dar nieko neliečia) — kad žmogus pabandytų pats
+  sec.addEventListener('pointerdown', e => { if (e.isTrusted && vis) touched = true; }, true);
+  function ghostDraw(fin) {
+    if (touched || !vis || RM || !lanes.length) return fin();
+    clickAt(modeEl.querySelector('u'), () => {
+      if (touched || !vis) { curOff(); return fin(); }
+      setMode('draw'); brush = lanes[0].cc; renderDraw();
+      const r = svgD.getBoundingClientRect(), t0 = performance.now() + 250, D = 1800;
+      const pts = Array.from({ length: N + 1 }, () => .12 + .76 * Math.random());   // atsitiktiniai taškai — kreivė kaskart kita
+      const yAt = t => { const f = t * N, i = Math.min(N - 1, Math.floor(f)), u = f - i, s = u * u * (3 - 2 * u); return pts[i] + (pts[i + 1] - pts[i]) * s; };
+      cur.style.transform = `translate(${r.left + r.width * .04}px, ${r.top + r.height * yAt(0)}px)`;
+      const go = now => {
+        if (touched || !vis) { curOff(); return fin(); }
+        const t = clamp((now - t0) / D), x = r.left + r.width * (.04 + .92 * t), y = r.top + r.height * yAt(t);
+        cur.classList.remove('mv'); cur.style.transform = `translate(${x}px, ${y}px)`; if (now >= t0) paintDraw(x, y);
+        if (t < 1) requestAnimationFrame(go);
+        else setTimeout(() => { if (touched || !vis) { curOff(); return fin(); } clickAt(modeEl.querySelector('s'), () => { setMode('steps'); setTimeout(curOff, 400); fin(); }); }, 700);
+      };
+      requestAnimationFrame(go);
+    });
+  }
+  again.addEventListener('click', () => { touched = false; setMode('steps'); demo(true); });
+  TRACK1.onRows(() => { render(); changed(); });   // pašalinta Track eilutė — dingsta ir iš SEQ
+  render();
+  return {   // drobės valdikliui ir aranžuotei — tos pačios eilutės, tas pats clock
+    get lanes() { return lanes; }, get playing() { return playing; }, BY, CF, CVS, addLane,
+    onChange: f => subs.push(f), play: autoPlay, refresh: mark,
+    redraw() { lanes.forEach(drawLane); if (mode === 'draw') renderDraw(); },   // aranžuotė perjungė dalies žingsnius
+    setHook(h) { hook = h; mark(); },
+    setVis(v, withDemo) {
+      if (v !== vis) { vis = v; $('#flow').classList.toggle('s2', v); if (v) { render(); if (lanes.length) autoPlay(); } else setPlay(false); }   // neaktyvu — clock stovi
+      if (v && withDemo) setTimeout(demo, 400);
+    },
+  };
+})();
+
+/* ═════════ 8 žingsnis: aranžuotė (ta pati drobė) ═════════
+   Eilutės ir žingsniai — tie patys SEQ. Kortelė = dalis: ilgis 2 taktai (viena 8 žingsnių frazė) arba 4 (du kartus), mute — eilutei.
+   Paspausta kortelė užsakoma ir įsijungia takto riboje, nuo 1 žingsnio. Loop — po paskutinės iš pradžių, kitaip sustoja.
+   Atskiro clock nėra: SEQ kiekvieną žingsnį klausia aranžuotės (hook). */
+const ARR = (() => {
+  const sec = $('#flowStage'), cardsEl = $('#arCards'), ghost = $('#lbGhost'), BY = TRACK1.BY, N = 8;
+  let parts = [], cur = 0, st = 0, pos = 0, queue = null, loop = true, vis = false, demoDone = false, touched = false;
+  const nm = i => String(i + 1);   // kaip įrankyje: 1, 2, 3…
+  // Kiekviena dalis turi savo žingsnius (v: cc → 8 reikšmės). Nauja dalis — dabartinės kopija, toliau gyvena atskirai
+  const newPart = from => ({ id: nm(parts.length), len: from ? from.len : 2, mute: new Set(from ? from.mute : []),
+    v: from ? Object.fromEntries(Object.entries(from.v).map(([cc, a]) => [cc, a.slice()])) : {} });
+  function load(i) {   // SEQ eilutės rodo ir redaguoja grojančios dalies žingsnius (ta pati masyvo nuoroda — redagavimas iškart dalyje)
+    const P = parts[i]; if (!P) return; let ch = false;
+    for (const l of SEQ7.lanes) { if (!P.v[l.cc]) P.v[l.cc] = l.v.slice(); if (l.v !== P.v[l.cc]) { l.v = P.v[l.cc]; ch = true; } }
+    if (ch) SEQ7.redraw();
+  }
+
+  function render() {
+    if (!parts.length) parts.push(newPart());
+    const L = SEQ7.lanes;
+    cardsEl.innerHTML = parts.map((P, pi) => `<div class="ar-card" data-p="${pi}"><div class="ar-ch"><span>${P.id}</span><em data-len title="Length — click: 2 / 4 bars">${P.len} BARS</em></div>`
+      + L.map(l => `<div class="ar-ln${P.mute.has(l.cc) ? ' m' : ''}" style="--c:${l.c}"><u data-m="${l.cc}" title="Mute ${BY[l.cc].n}">M</u><span class="ar-dots">${Array.from({ length: P.len * 4 }, (_, k) => `<i style="opacity:${(.15 + .8 * (P.v[l.cc] || l.v)[k % N] / 127).toFixed(2)}"></i>`).join('')}</span></div>`).join('') + '</div>').join('');
+    mark();
+  }
+  function mark() {   // tik klasės ir tekstai — be perpiešimo
+    const on = vis && SEQ7.playing;
+    cardsEl.querySelectorAll('.ar-card').forEach((c, i) => { c.classList.toggle('on', i === cur && on); c.classList.toggle('q', i === queue); });
+    cardsEl.querySelectorAll('em[data-len]').forEach((e, i) => e.textContent = i === cur && on ? `${Math.floor(pos / 4) + 1}/${parts[i].len}` : `${parts[i].len} BARS`);
+  }
+  // Takto riboje — užsakyta dalis (nuo 1 žingsnio); dalies pabaigoje — kita (Loop — iš pradžių, kitaip sustoja)
+  const hook = {
+    tick() {
+      const was = cur;
+      if (st >= parts[cur].len * 4) { st = 0; if (cur + 1 < parts.length) cur++; else if (loop) cur = 0; else { cur = 0; load(cur); mark(); return -1; } }
+      if (queue !== null && st % 4 === 0) { cur = queue; st = 0; queue = null; }
+      if (cur !== was) load(cur);   // kita dalis — kiti žingsniai
+      pos = st++; mark(); return pos % N;
+    },
+    muted: cc => !!parts[cur] && parts[cur].mute.has(cc),
+  };
+  function pick(i) {   // grojant — užsakoma, įsijungs takto riboje; sustabdžius — iškart įkeliama į SEQ (Play neįsijungia, kaip įrankyje)
+    if (SEQ7.playing) queue = i; else { cur = i; st = 0; queue = null; load(cur); }
+    mark(); SEQ7.refresh();
+  }
+  function addPart() { load(cur); parts.push(newPart(parts[cur])); render(); cardsEl.scrollLeft = cardsEl.scrollWidth; }   // + Add — dabartinės dalies kopija; juosta nuslenka prie naujos (tik juosta, ne puslapis)
+
+  sec.addEventListener('pointerdown', e => { if (e.isTrusted && vis) touched = true; }, true);
+  cardsEl.addEventListener('click', e => {
+    const card = e.target.closest('.ar-card'); if (!card) return;
+    const P = parts[+card.dataset.p];
+    if (e.target.closest('[data-m]')) { const cc = +e.target.closest('[data-m]').dataset.m; P.mute.has(cc) ? P.mute.delete(cc) : P.mute.add(cc); render(); SEQ7.refresh(); return; }
+    if (e.target.closest('[data-len]')) { P.len = P.len === 2 ? 4 : 2; if (parts[cur] === P && st >= P.len * 4) st = 0; render(); return; }
+    pick(+card.dataset.p);
+  });
+  $('#arAdd').addEventListener('click', addPart);
+  $('#arLoop').addEventListener('click', e => { loop = !loop; e.target.classList.toggle('on', loop); });
+  SEQ7.onChange(() => vis && render());   // SEQ eilutės ir žingsniai — kortelėse iškart
+
+  // Vaiduoklis: + Add → mute vienai eilutei naujoje dalyje → užsako ją
+  const again = $('.fl-cap[data-s="3"] .again');
+  function fly(label, el, then) {
+    if ((touched && !then.force) || !vis) return;
+    const b = el.getBoundingClientRect();
+    ghost.classList.remove('fly'); ghost.textContent = label; ghost.style.opacity = 1;
+    ghost.style.transform = `translate(${b.left - 120}px, ${b.top - 30}px)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => { ghost.classList.add('fly'); ghost.style.transform = `translate(${b.left + 4}px, ${b.top + 4}px)`; }));
+    setTimeout(() => { ghost.style.opacity = 0; then(); }, 1200);
+  }
+  function demo(force) {
+    if ((demoDone || touched) && !force) return; demoDone = true;
+    const go = f => { f.force = force; return f; };
+    setTimeout(() => fly('+ ADD', $('#arAdd'), go(() => {
+      addPart(); const pi = parts.length - 1, L = SEQ7.lanes;
+      const after = go(() => fly(`▶ ${parts[pi].id}`, cardsEl.querySelector(`[data-p="${pi}"]`), go(() => { pick(pi); again.classList.add('show'); })));
+      if (L.length > 1) fly('MUTE', cardsEl.querySelector(`[data-p="${pi}"] [data-m="${L[1].cc}"]`), go(() => { parts[pi].mute.add(L[1].cc); render(); SEQ7.refresh(); setTimeout(after, 500); }));
+      else { parts[pi].len = 4; render(); setTimeout(after, 500); }
+    })), force ? 200 : 2200);
+  }
+  again.addEventListener('click', () => demo(true));
+  return {
+    get parts() { return parts; },   // 9 scenai
+    setVis(v) {
+      if (v === vis) return; vis = v; $('#flow').classList.toggle('s3', v);
+      if (!v) { SEQ7.setHook(null); return; }
+      if (!SEQ7.lanes.length) {   // atėjus tiesiai į 8 žingsnį — SEQ gauna dvi pirmas Track 1 eilutes
+        if (!TRACK1.rows.length) TRACK1.add(62);
+        TRACK1.el.querySelectorAll('.lb-row').forEach((r, i) => i < 2 && SEQ7.addLane(+r.dataset.cc));
+      }
+      if (!parts.length) parts.push(newPart());
+      st = 0; load(cur); SEQ7.setHook(hook); render(); SEQ7.play(); setTimeout(demo, 400);
+    },
+  };
+})();
+
+/* ═════════ 9 SCENA: santrauka ═════════
+   Overview = žmogaus sesija: T1 — jo parametrai (stulpelis pagal įrenginį), juda pagal jo SEQ (glide); T2–T4 tušti, prislopinti.
+   Nuolatinis kontekstas — tik stulpelių ir eilučių užrašai; detalės — hover. Poros paryškina savo sritį. Ciklas — tik kai matoma. */
+(() => {
+  const sec = $('#sum'), grid = $('#smGrid'), ov = $('#smOv'), tip = $('#smTip'), partsEl = $('#smParts'), BY = TRACK1.BY, N = 8;
+  const COLS = ['DISC', 'MOSAIC', 'RING', 'DEFORM', 'VAST', 'MIX'];
+  let vis = false, clk = 0, raf = 0, step = 0, t0 = 0, val = {};
+  const laneOf = cc => SEQ7.lanes.find(l => l.cc === cc);
+  const params = dev => TRACK1.rows.map(cc => BY[cc]).filter(p => p.dev === dev).sort((a, b) => a.order - b.order);
+  // Glifai — kaip įrankio Overview: Mosaic — grūdeliai, Vast — uodega, kiti — mini juostos, nežinoma — užbrūkšniuota
+  const LIGHT = '#d0d0d0', MID = '#4a4a4a', HATCH = '<rect width="100" height="40" fill="url(#smHatch)"/>';
+  const hash = i => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+  const DEVCC = { DISC: [46, 47, 48, 49, 56, 58], MOSAIC: [62, 63, 64, 65, 67, 69], RING: [78, 79, 80, 83, 85, 88], DEFORM: [94, 95, 96, 97, 101], VAST: [110, 112, 113, 114, 116, 117], MIX: ['LEVEL', 'FILTER', 'PAN', 'COMPRESS'] };
+  // Numatytosios sesijos reikšmės visiems įrenginiams (T1 — po žmogaus parametrais; T2–T4 — visos, nejuda). Mix — su levels
+  const EX = {}; for (let t = 1; t <= 4; t++) for (const d in DEVCC) DEVCC[d].forEach((cc, i) => EX[`${t}:${cc}`] = Math.round(20 + 100 * hash(t * 31 + i * 7 + d.length)));
+  for (let t = 1; t <= 4; t++) { EX[`${t}:LEVEL`] = 104 - t * 3; EX[`${t}:PAN`] = 64 + (t % 2 ? -1 : 1) * t * 6; }   // Mix: lygiai — aukšti, pan — arti centro (kaip tikroje sesijoje)
+  const known = () => true;   // kiekvienas įrenginys turi bent numatytąsias reikšmes
+  const v = (t, cc, def) => t === 1 && TRACK1.rows.includes(cc) ? (val[cc] ?? 64) : (EX[`${t}:${cc}`] ?? def);
+  const t1ccs = d => { const mine = params(d).map(p => p.cc); return mine.concat(DEVCC[d].filter(cc => !mine.includes(cc))).slice(0, 6); };   // žmogaus parametrai pirmi, likusios vietos — numatytosios
+  function glyph(t, d) {
+    if (!known(t, d)) return HATCH;
+    if (d === 'MOSAIC') {
+      const rate = v(t, 63, 64), size = v(t, 64, 64), spray = v(t, 67, 0), pitch = v(t, 62, 64), wet = v(t, 69, 127);
+      const n = 6 + Math.round(rate / 127 * 22), cy = 20 - (pitch - 64) / 64 * 8, o = (.25 + .75 * wet / 127).toFixed(2);
+      let out = `<line x1="0" y1="20" x2="100" y2="20" stroke="${MID}" stroke-width="1"/>`;
+      for (let i = 0; i < n; i++) {
+        const x = ((i + .5) / n * 100 + (hash(i) - .5) * spray / 127 * 30 + 100) % 100, h = (4 + size / 127 * 30) * (.45 + .55 * hash(i + 7));
+        out += `<line x1="${x.toFixed(1)}" y1="${(cy - h / 2).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(cy + h / 2).toFixed(1)}" stroke="${LIGHT}" stroke-width="1.6" opacity="${o}"/>`;
+      }
+      return out;
+    }
+    if (d === 'VAST') {
+      const size = v(t, 113, 64), rev = v(t, 112, 64), decay = v(t, 117, 64), H = 8 + size / 127 * 30, k = .05 + (1 - decay / 127) * .35, n = 18, w = 100 / n, o = (.3 + .7 * rev / 127).toFixed(2);
+      let out = '';
+      for (let i = 0; i < n; i++) { const h = Math.max(1.5, H * Math.exp(-i * k)), x = i * w + w * .2;
+        out += `<rect x="${x.toFixed(1)}" y="2" width="${(w * .6).toFixed(1)}" height="36" rx="1" fill="${MID}"/><rect x="${x.toFixed(1)}" y="${(38 - h).toFixed(1)}" width="${(w * .6).toFixed(1)}" height="${h.toFixed(1)}" rx="1" fill="${LIGHT}" opacity="${o}"/>`; }
+      return out;
+    }
+    const ccs = t > 1 ? DEVCC[d] : t1ccs(d);   // T1 — žmogaus parametrai (jų SEQ spalva) + numatytosios
+    return ccs.slice(0, 6).map((cc, i) => { const val_ = v(t, cc, 64), l = t === 1 && laneOf(cc), c = l ? l.c : LIGHT;
+      return `<rect x="${i * 16.6 + 2}" y="2" width="12" height="36" rx="1" fill="${MID}"/><rect x="${i * 16.6 + 2}" y="${(38 - val_ / 127 * 36).toFixed(1)}" width="12" height="${(val_ / 127 * 36).toFixed(1)}" rx="1" fill="${c}"/>`; }).join('');
+  }
+  function render() {
+    let h = '<span></span>' + COLS.map(c => `<span class="sm-ch">${c}</span>`).join('');
+    for (let t = 1; t <= 4; t++) {
+      h += `<div class="sm-row ${t === 1 ? 't1' : 'dim'}" style="display:contents"><span class="sm-rl">T${t}</span>`;
+      h += COLS.map(c => `<div class="sm-cell${known(t, c) ? '' : ' empty'}" data-t="${t}" data-dev="${c}"><svg viewBox="0 0 100 40" preserveAspectRatio="none">${glyph(t, c)}</svg></div>`).join('') + '</div>';
+    }
+    grid.innerHTML = h;
+    const P = ARR.parts; partsEl.innerHTML = 'ARRANGEMENT' + (P.length ? P.map(q => `<span>${q.id} · ${q.len} BARS</span>`).join('') : '<span>1 · 2 BARS</span>');
+  }
+  function glyphs() {   // perpiešiami tik T1 langeliai (juda); T2–T4 stovi
+    grid.querySelectorAll('.sm-cell[data-t="1"]').forEach(c => { if (params(c.dataset.dev).some(p => laneOf(p.cc))) c.firstChild.innerHTML = glyph(1, c.dataset.dev); });   // tik tie, kur kas nors juda
+  }
+  // Tas pats judesys kaip SEQ: kiekviena eilutė per žingsnį pereina į kitą reikšmę pagal kreivę
+  function tick() { if (!vis) return; step = (step + 1) % N; t0 = performance.now(); if (!raf) raf = requestAnimationFrame(frame); clk = setTimeout(tick, 500); }
+  function frame(now) {
+    raf = 0; if (!vis) return;
+    const t = clamp((now - t0) / 500);
+    for (const l of SEQ7.lanes) { const a = l.v[(step + N - 1) % N], b = l.v[step]; val[l.cc] = a + (b - a) * (SEQ7.CF[l.cv] || SEQ7.CF.LIN)(t); }
+    glyphs(); if (t < 1) raf = requestAnimationFrame(frame);
+  }
+  // Hover: langelis — parametrai ir reikšmės; pora — jos sritis Overview
+  grid.addEventListener('pointerover', e => {
+    const c = e.target.closest('.sm-cell'); if (!c) return;
+    const t = +c.dataset.t, d = c.dataset.dev, fmt = x => String(Math.round(x)).padStart(3, '0');
+    const lines = (t === 1 ? t1ccs(d) : DEVCC[d]).map(cc => `${BY[cc] ? BY[cc].n : cc} ${fmt(v(t, cc, 64))}`);
+    tip.innerHTML = `<em>T${t} · ${d}</em><br>` + (lines.length ? lines.join('<br>') : '<em>not set yet</em>');
+    const r = c.getBoundingClientRect(); tip.style.left = r.left + 'px'; tip.style.top = (r.bottom + 6) + 'px'; tip.style.opacity = 1;
+  });
+  grid.addEventListener('pointerleave', () => tip.style.opacity = 0);
+  // Poros — atsakymai į WHY: žmogus „rašo“ problemą (kaip WHY: raidės atsiranda savo vietoje), tada atsakymas + jo sritis Overview.
+  // Vienas scroll — viena pora. Parašyta kartą — grįžus rodoma iškart. Viskas tik kai scena užpildo ekraną
+  const PAIRS = [
+    ['I have two hands. I can\'t hold it all.', 'One knob moves many. The sequencer moves the rest.', 'hands'],
+    ['I keep the rest in my head', 'The whole chain in view', 'head'],
+    ['I polish the loop.|And it stays a loop.', 'Parts that turn into a song', 'song'],
+  ].map(([q, a, hl]) => ({ q: q.replace('|', '\n'), a, hl, typed: false }));
+  const qEl = $('#smQ'), aEl = $('#smA'), on = document.createElement('b'), off = document.createElement('s'), caret = document.createElement('i');
+  qEl.append(on, caret, off);
+  let cur = -1, tm = 0;
+  const setHl = hl => { ov.classList.remove('hl-hands', 'hl-head', 'hl-song'); if (hl) ov.classList.add('hl-' + hl); };
+  const answer = P => { caret.remove(); on.textContent = P.q; off.textContent = ''; P.typed = true; aEl.textContent = P.a; aEl.classList.add('in'); setHl(P.hl); };
+  function show(i) {
+    clearTimeout(tm); const P = PAIRS[i]; cur = i;
+    aEl.classList.remove('in'); setHl(null);
+    if (P.typed || RM) { on.textContent = P.q; off.textContent = ''; caret.remove(); return void (tm = setTimeout(() => answer(P), RM ? 0 : 250)); }
+    let ci = 0; on.textContent = ''; off.textContent = P.q; on.after(caret);
+    const step = () => { ci++; on.textContent = P.q.slice(0, ci); off.textContent = P.q.slice(ci);
+      tm = ci < P.q.length ? setTimeout(step, P.q[ci - 1] === '\n' ? 260 : 34 + Math.random() * 36) : setTimeout(() => answer(P), 350); };
+    tm = setTimeout(step, 450);
+  }
+  function onScroll() {
+    const r = sec.getBoundingClientRect(), vh = innerHeight;
+    if (!(r.top <= 1 && r.bottom >= vh - 1)) { if (cur !== -1 && (r.bottom < 0 || r.top > vh)) { clearTimeout(tm); cur = -1; } return; }   // tik kai scena užpildo ekraną
+    const i = Math.round(clamp(-r.top / (sec.offsetHeight - vh)) * (PAIRS.length - 1));
+    if (i !== cur) show(i);
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+  new IntersectionObserver(es => {
+    vis = es[0].isIntersecting; clearTimeout(clk);
+    if (vis) { render(); tick(); onScroll(); } else { tip.style.opacity = 0; clearTimeout(tm); cur = -1; }   // nematoma — ciklas ir rinkimas stovi
+  }, { threshold: 0 }).observe(sec);
+})();
+
+/* ═════════ Drobė 5–8: objektai keliauja tarp žingsnių ═════════
+   0 (5): biblioteka kairėje, Track 1 dešinėje. 1 (6): biblioteka išeina į kairę, Track 1 — į jos vietą, iš dešinės — OXI.
+   2 (7): Track 1 lieka, OXI grįžta į dešinę, SEQ ateina iš apačios. 3 (8): Track 1 ir SEQ laukia, iš apačios — aranžuotė.
+   Telefone ta pati logika vertikaliai. Kadrai — tik kai drobė matoma ir juda; žingsniai aktyvuojami tik stovint. */
+(() => {
+  const flow = $('#flow'), lib = $('#foLib'), t5 = $('#lbTrack'), oxi = $('#foOxi'), seq = $('#foSeq'), arr = $('#foArr'), caps = $$('.fl-cap'), wires = $('#mpWires'), S = caps.length - 1;
+  let raf = 0, step = -1, lastK = '';
+  const sm = t => t * t * (3 - 2 * t);
+  const P = (x, y, o = 1) => ({ x, y, o });
+  const mix = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), o: b.o > a.o ? lerp(a.o, b.o, clamp(t * 1.4)) : lerp(a.o, b.o, t) });   // ateinantis — ryškėja greičiau
+  const place = (el, q) => { el.style.transform = `translate(-50%,-50%) translate(${q.x.toFixed(1)}px, ${q.y.toFixed(1)}px)`; el.style.opacity = q.o.toFixed(3); el.style.pointerEvents = q.o > .6 ? '' : 'none'; };
+  function activate(s) {   // vienu metu veikia tik stovimo žingsnio objektai
+    SC6.setVis(s === 1);
+    if (s !== 3) ARR.setVis(false);
+    SEQ7.setVis(s >= 2, s === 2);
+    if (s === 3) ARR.setVis(true);
+    TRACK1.tagMode(s >= 2 ? 's' : 'k');   // žymų stulpelyje — to žingsnio ryšys (K1 ⇅ arba S)
+    if (s === 0) TRACK1.activate();
+  }
+  function frame() {
+    raf = 0;
+    const r = flow.getBoundingClientRect(), vh = innerHeight, vw = innerWidth;
+    if (r.bottom < 0 || r.top > vh) { if (step !== -1) { step = -1; activate(-1); } return; }
+    const p = clamp(-r.top / (flow.offsetHeight - vh)), u = p * S, k = Math.min(S - 1, Math.floor(u)), t = sm(u - k), mob = vw <= 700, key = `${p.toFixed(4)}|${vw}|${vh}`;
+    if (key !== lastK) {
+      lastK = key;
+      // pirma visi matavimai, tada rašymas
+      const hL = lib.offsetHeight, hT = t5.offsetHeight, hS = seq.offsetHeight, hA = arr.offsetHeight, wL = lib.offsetWidth, wT = t5.offsetWidth, wO = oxi.offsetWidth, wS = seq.offsetWidth;
+      const capB = caps.map(c => c.getBoundingClientRect().bottom);
+      let K;   // kiekvieno objekto padėtis kiekviename žingsnyje
+      if (mob) {   // vertikaliai: po antrašte — viršuje šaltinis, po juo taikinys (pozicijos pagal tikrą aukštį; drobė lipni, todėl lango koordinatės)
+        arr.style.width = '';   // telefone — CSS plotis
+        const top = i => capB[i] + 18 - vh / 2, at = (h, y) => y + h / 2, G = 14, dn = P(0, vh, 0), up = P(0, -vh, 0);
+        const fit = capB[3] + 18 + hT + G + hS + G + hA <= vh - 16;   // 8 žingsnyje telpa visi trys — Track lieka; ne — išeina į viršų (kaip biblioteka)
+        const y3 = fit ? top(3) + hT + G : top(3);
+        K = {
+          lib: [P(0, at(hL, top(0))), up, up, up],
+          t5: [P(0, at(hT, top(0) + hL + G)), P(0, at(hT, top(1))), P(0, at(hT, top(2))), fit ? P(0, at(hT, top(3))) : up],
+          oxi: [dn, P(0, at(oxi.offsetHeight, top(1) + hT + G)), dn, dn],
+          seq: [dn, dn, P(0, at(hS, top(2) + hT + G)), P(0, at(hS, y3))],
+          arr: [dn, dn, dn, P(0, at(hA, y3 + hS + G))],
+        };
+      } else {     // horizontaliai: kairėje šaltinis, dešinėje taikinys (tempimo įprotis iš kairės į dešinę)
+        // pora centruojama kaip grupė: iš šonų — vienodai (kortelės skirtingo pločio). Tarpas 88 px; kai vietos mažiau — lygus atstumui iki šonų (min 24)
+        const gap = (a, b) => clamp((vw - a - b) / 3, 24, 88), L = (w, w2) => -(w + gap(w, w2) + w2) / 2 + w / 2, R = (w, w1) => (w1 + gap(w1, w) + w) / 2 - w / 2, off = P(vw * .75, 0, 0);
+        // 8 žingsnis: Track + SEQ pakyla, po jais — aranžuotė; visas blokas centruojamas tarp antraštės ir ekrano apačios
+        const c = vh * .57, hm = Math.max(hT, hS), G2 = 24, blockH = hm + G2 + hA, top0 = capB[3] + 24, room = vh - 24 - top0;
+        const bTop = top0 + Math.max(0, (room - blockH) / 2), lift = c - (bTop + hm / 2);
+        arr.style.width = (wT + gap(wT, wS) + wS) + 'px';   // aranžuotė — Track ir SEQ kraštų lygyje
+        K = {
+          lib: [P(L(wL, wT), 0), P(-vw * .75, 0, 0), P(-vw * .75, 0, 0), P(-vw * .75, 0, 0)],
+          t5: [P(R(wT, wL), 0), P(L(wT, wO), 0), P(L(wT, wS), 0), P(L(wT, wS), -lift)],   // Track 1 — tas pats objektas, tik keliauja
+          oxi: [off, P(R(wO, wT), 0), off, off],   // OXI grįžta ten, iš kur atėjo
+          seq: [P(R(wS, wT), vh, 0), P(R(wS, wT), vh, 0), P(R(wS, wT), 0), P(R(wS, wT), -lift)],
+          arr: [P(0, vh, 0), P(0, vh, 0), P(0, vh, 0), P(0, hm / 2 + G2 + hA / 2 - lift)],   // po Track + SEQ grupe, jos centre
+        };
+      }
+      place(lib, mix(K.lib[k], K.lib[k + 1], t)); place(t5, mix(K.t5[k], K.t5[k + 1], t)); place(oxi, mix(K.oxi[k], K.oxi[k + 1], t));
+      place(seq, mix(K.seq[k], K.seq[k + 1], t)); place(arr, mix(K.arr[k], K.arr[k + 1], t));
+      caps.forEach((c, i) => { const o = clamp(1 - Math.abs(u - i) * 2); c.style.opacity = o.toFixed(3); c.classList.toggle('on', o > .6); });
+      const wo = mob ? 0 : clamp(1 - Math.abs(u - 1) * 2); wires.style.opacity = wo.toFixed(3); if (wo > 0) SC6.wires();   // laidai — tik OXI žingsnyje; telefone ryšį rodo K žyma
+    }
+    const n = Math.round(u), s = Math.abs(u - n) < .04 && r.top <= 1 && r.bottom >= vh - 1 ? n : null;   // aktyvuojama tik sustojus ties žingsniu ir kai drobė užpildo ekraną (ne kai tik liečia jo apačią)
+    if (s !== null && s !== step) { step = s; activate(s); }
+  }
+  const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
+  const relayout = () => { lastK = ''; kick(); };
+  addEventListener('scroll', kick, { passive: true }); addEventListener('resize', relayout);
+  new ResizeObserver(relayout).observe(t5); new ResizeObserver(relayout).observe(seq); new ResizeObserver(relayout).observe(arr);   // pasikeitus aukščiui (eilutė, DRAW) — objektai persidėlioja
+  kick();
+})();
+</script>
+</body>
+</html>
