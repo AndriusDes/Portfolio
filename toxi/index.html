@@ -85,6 +85,7 @@
   .logo span { display:inline-block; }
   .lead { margin:0; font-size:clamp(12px, 1.3vw, 15px); letter-spacing:.14em; }
   .facts { color:var(--dim); font-size:10px; letter-spacing:.16em; }
+  .g-touch { display:none; } @media (pointer:coarse) { .g-fine { display:none; } .g-touch { display:inline; } }   /* tekstas pagal gestą: pelė / pirštas */
   .hint .h-touch { display:none; } @media (pointer:coarse) { .hint .h-fine { display:none; } .hint .h-touch { display:inline; } }
   .hint { position:absolute; left:0; right:0; bottom:28px; z-index:2; text-align:center; font-size:10px; color:var(--dim); letter-spacing:.2em; pointer-events:none; }
 
@@ -215,7 +216,7 @@
   .again { font:inherit; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); background:none; border:0; padding:4px; cursor:pointer; opacity:0; pointer-events:none; transition:opacity .4s, color .2s; }
   .again.show { opacity:1; } .fl-cap.on .again.show { pointer-events:auto; } .again:hover { color:var(--fg); }
   .lb-side { max-height:72vh; display:flex; flex-direction:column; }
-  .lb-list { overflow:auto; padding:6px 0; font-size:11px; }
+  .lb-list { overflow:auto; padding:6px 0; font-size:11px; touch-action:pan-y; overscroll-behavior:contain; }
   .lb-cat { display:flex; gap:6px; padding:6px 12px; color:var(--dim); cursor:pointer; }
   .lb-cat:hover, .lb-cat.open { color:var(--fg); }
   .lb-cat i { width:8px; font-style:normal; transition:transform .2s; }
@@ -422,7 +423,7 @@
 <section id="flow">
   <div id="flowStage">
     <svg id="mpWires"></svg>
-    <div class="fl-cap" data-s="0"><h2>Pick what you need</h2><p>Drag S-4 parameters onto a track. Every parameter is its own CC.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="fl-cap" data-s="0"><h2>Pick what you need</h2><p><span class="g-fine">Drag S-4 parameters onto a track.</span><span class="g-touch">Tap S-4 parameters to add them to a track.</span> Every parameter is its own CC.</p><button class="again" type="button">↺ Show me again</button></div>
     <div class="fl-cap" data-s="1"><h2>Give it to a knob</h2><p>One knob can move several. Invert one and they move apart.</p><button class="again" type="button">↺ Show me again</button></div>
     <div class="fl-cap" data-s="2"><h2>Let it move</h2><p>Drop a parameter onto the sequencer. Glide carries the value from step to step.</p><button class="again" type="button">↺ Show me again</button></div>
     <div class="fl-cap" data-s="3"><h2>From loop to song</h2><p>Each card is a part with its own steps, length and mutes. Click one: it takes over on the next bar.</p><button class="again" type="button">↺ Show me again</button></div>
@@ -1261,13 +1262,17 @@ const TRACK1 = (() => {
   const over = (x, y) => { const r = track.getBoundingClientRect(); return x > r.left && x < r.right && y > r.top && y < r.bottom; };
   list.addEventListener('click', e => { const c = e.target.closest('.lb-cat'); if (!c) return; OPEN.has(c.dataset.dev) ? OPEN.delete(c.dataset.dev) : OPEN.add(c.dataset.dev); renderLib(); });
   list.addEventListener('dblclick', e => { const it = e.target.closest('.lb-item'); if (it) add(+it.dataset.cc); });
+  // Telefone — bakstelėjimas: parametras prisideda prie Track (tempimas per ekraną kovotų su slinkimu); sąrašas slenka pirštu
+  let tap = null;
   list.addEventListener('pointerdown', e => {
     const it = e.target.closest('.lb-item'); if (!it) return;
+    if (e.pointerType === 'touch') { tap = { cc: +it.dataset.cc, x0: e.clientX, y0: e.clientY }; return; }
     const p = BY[+it.dataset.cc]; drag = { cc: p.cc, moved: false, x0: e.clientX, y0: e.clientY };
     ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`;
     ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
     cap(it, e.pointerId); e.preventDefault();
   });
+  list.addEventListener('pointercancel', () => { tap = null; if (drag) { ghost.style.opacity = 0; track.classList.remove('over'); drag = null; } });   // slinkimas perėmė — nieko nepridedam
   list.addEventListener('pointermove', e => {
     if (!drag) return;
     if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) { drag.moved = true; ghost.style.opacity = 1; }
@@ -1275,6 +1280,7 @@ const TRACK1 = (() => {
     track.classList.toggle('over', over(e.clientX, e.clientY));
   });
   list.addEventListener('pointerup', e => {
+    if (tap) { if (Math.hypot(e.clientX - tap.x0, e.clientY - tap.y0) < 10) add(tap.cc); tap = null; return; }
     if (!drag) return;
     if (drag.moved && over(e.clientX, e.clientY)) add(drag.cc);
     ghost.style.opacity = 0; track.classList.remove('over'); drag = null;
