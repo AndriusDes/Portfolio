@@ -141,7 +141,7 @@
     .sch .d { display:none; } .sch .m { display:block; }
   }
   #story [data-dev] { color:var(--ln); }
-  #story svg#cv { position:absolute; inset:0; width:100%; height:100%; touch-action:pan-y; }   /* lietimas: aukštyn/žemyn — slinkimas, į šonus — geltonas knob'as */
+  #story svg#cv { position:absolute; inset:0; width:100%; height:100%; touch-action:pan-y; }   /* lietimas: aukštyn/žemyn — slinkimas, į šonus ant įrenginio — geltonas knob'as */
   #story #caps { position:absolute; left:0; right:0; top:0; bottom:8vh; pointer-events:none; text-align:center; }
   #story .cap.cap-top { top:11vh; bottom:auto; }   /* schema — antraštė viršuje, kaip drobėje 5–8: prasideda T↔OXI dalis */
   #story .cap { position:absolute; left:0; right:0; bottom:0; display:grid; gap:10px; padding:0 24px; opacity:0; }
@@ -1170,10 +1170,16 @@ let drag = null;
 svg.addEventListener('pointerdown', e => {
   const k = e.target.closest('[data-d="oxi"].k'), c = e.target.closest('.cell'), pl = e.target.closest('.play');
   if (pl) { playUser = !playing; setPlay(!playing); cueDone(2); return; }
+  // Telefone — visas įrenginys yra paspaudimo zona: braukimas į šonus bet kur ant OXI / laptop'o / S-4 suka geltoną (aktyvų) knob'ą
+  if (e.pointerType === 'touch') {
+    const dv = e.target.closest('[data-dev]'); if (!dv) return;
+    const i = act >= 0 ? act : 0, src = dv.dataset.dev === 'oxi' ? 'oxi' : 'toxi';
+    drag = { i, src, x: e.clientX, y: e.clientY, v: VAL[i], tch: true }; cueDone(src === 'oxi' ? 0 : 1);
+    touch(i, VAL[i], src); return;
+  }
   if (!k && !c) return;
-  const i = k ? +k.dataset.k : +c.dataset.c, tch = e.pointerType === 'touch';
-  if (tch && i !== act) return;   // telefone — sukamas tik geltonas (aktyvus) knob'as / langelis; kiti — ne (slinkimas svarbesnis)
-  drag = { i, src: k ? 'oxi' : 'toxi', x: e.clientX, y: e.clientY, v: VAL[i], tch }; cueDone(k ? 0 : 1);
+  const i = k ? +k.dataset.k : +c.dataset.c;
+  drag = { i, src: k ? 'oxi' : 'toxi', x: e.clientX, y: e.clientY, v: VAL[i] }; cueDone(k ? 0 : 1);
   document.body.classList.add('dragging'); e.preventDefault();
   touch(i, VAL[i], drag.src);
 });
