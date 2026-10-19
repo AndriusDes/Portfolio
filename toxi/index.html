@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>T↔OXI — Torso S-4 × OXI E16</title>
 <meta name="description" content="T↔OXI: your OXI E16 becomes the hands of the Torso S-4. No install, one HTML file, runs in Chrome.">
 <style>
   :root { --bg:#000; --fg:#e6e6e6; --dim:#7a7a7a; --line:#222; --line2:#2a2a2a; --wire:#888; --edge:#8c8c8c;
           --acc:#3dff8f; --live:#ffd23f; --blue:#4fa3c7; }
   * { box-sizing:border-box; }
-  html { background:var(--bg); scroll-snap-type:y mandatory; }   /* viena scena per vieną scroll judesį */
+  html { background:var(--bg); scroll-snap-type:y mandatory; touch-action:pan-x pan-y; }   /* viena scena per vieną scroll judesį; telefone — be pinch / dvigubo bakstelėjimo mastelio (jis laužo scenų žingsnius) */
   #hero, #why, #story .snap, #flow .snap, #sum .snap, #next { scroll-snap-stop:always; }
   /* Lietimas: tekstas nežymimas, iOS meniu ir paspaudimo blyksnis neatsiranda (puslapis — instrumentas, ne dokumentas) */
   @media (pointer:coarse) { body { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; } }
