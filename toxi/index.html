@@ -11,7 +11,10 @@
           --acc:#3dff8f; --live:#ffd23f; --blue:#4fa3c7; }
   * { box-sizing:border-box; }
   html { background:var(--bg); scroll-snap-type:y mandatory; }   /* viena scena per vieną scroll judesį */
-  #hero, #why, #story .snap, #flow .snap, #sum .snap, #next { scroll-snap-stop:always; }   /* greitas trackpad'o mostas nepraslysta pro sceną (ypač pirmą kartą, kol scena dar piešiama) */
+  #hero, #why, #story .snap, #flow .snap, #sum .snap, #next { scroll-snap-stop:always; }
+  /* Lietimas: tekstas nežymimas, iOS meniu ir paspaudimo blyksnis neatsiranda (puslapis — instrumentas, ne dokumentas) */
+  @media (pointer:coarse) { body { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; } }
+  * { -webkit-tap-highlight-color:transparent; }   /* greitas trackpad'o mostas nepraslysta pro sceną (ypač pirmą kartą, kol scena dar piešiama) */
   body { margin:0; color:var(--fg); font:12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
          text-transform:uppercase; letter-spacing:.08em; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
   body.dragging { cursor:grabbing; user-select:none; }
@@ -54,7 +57,7 @@
   /* Atskiri objektai: vos „žiūri“ į pelę (kelių laipsnių posūkis), juos galima tempti */
   .fl { position:absolute; left:0; top:0; font-size:9px; color:#b5b5b5; cursor:grab; user-select:none; }
   .fl.drag { cursor:grabbing; }
-  .hkg { display:grid; justify-items:center; gap:4px; }
+  .hkg { display:grid; justify-items:center; gap:4px; touch-action:pan-y; }   /* lietimas: aukštyn/žemyn — slinkimas, į šonus — knob'as */
   .fl .row { display:grid; grid-template-columns:52px 1fr 24px; align-items:center; gap:8px; padding:5px 8px; }
   .fl .row span { transition:color .9s; }
   .fl .row.glow span { color:var(--c); transition:color .15s; }
@@ -82,6 +85,7 @@
   .logo span { display:inline-block; }
   .lead { margin:0; font-size:clamp(12px, 1.3vw, 15px); letter-spacing:.14em; }
   .facts { color:var(--dim); font-size:10px; letter-spacing:.16em; }
+  .hint .h-touch { display:none; } @media (pointer:coarse) { .hint .h-fine { display:none; } .hint .h-touch { display:inline; } }
   .hint { position:absolute; left:0; right:0; bottom:28px; z-index:2; text-align:center; font-size:10px; color:var(--dim); letter-spacing:.2em; pointer-events:none; }
 
   /* ── WHY (juodraštis) ── */
@@ -385,7 +389,7 @@
     <p class="lead">Your OXI E16 becomes the hands of the Torso S-4.</p>
     <div class="facts">No install · One HTML file · Runs in Chrome</div>
   </div>
-  <div class="hint">Move · Drag · Scroll</div>
+  <div class="hint"><span class="h-fine">Move · Drag · Scroll</span><span class="h-touch">Swipe · Scroll</span></div>
 </section>
 
 <!-- ── WHY: problema (atsakymas — 4 istorijos scena „The whole map“ ir drobė 5–8) ── -->
@@ -680,18 +684,25 @@ function renderHero() {
 
 // Tempimas: objektą galima perkelti bet kur; laidai perskaičiuojami kiekviename kadre
 let hDrag = null;
+let hSwipe = null;   // telefone: knob'as — braukimas į šonus (≈ 180 px = visas diapazonas)
 hWorld.addEventListener('pointerdown', e => {
   const el = e.target.closest('.fl'); if (!el) return;
+  if (e.pointerType === 'touch') {   // objektų netempiam (slinkimas svarbesnis); tik knob'as
+    if (el.closest('.h-hk')) { hSwipe = { x0: e.clientX, v0: ENC.hk.v }; cap(el, e.pointerId); }
+    return;
+  }
   const f = FR.find(q => q.el === el);
   hDrag = { f, x0: e.clientX, y0: e.clientY, fx: f.x, fy: f.y, sc: posK() };
   el.classList.add('drag'); cap(el, e.pointerId); e.preventDefault();
 });
 hWorld.addEventListener('pointermove', e => {
+  if (hSwipe) { ENC.hk.v = clamp(hSwipe.v0 + (e.clientX - hSwipe.x0) / 180 * 127, 0, 127); hKey = ''; kick(); return; }
   if (!hDrag) return;
   hDrag.f.x = hDrag.fx + (e.clientX - hDrag.x0) / hDrag.sc; hDrag.f.y = hDrag.fy + (e.clientY - hDrag.y0) / hDrag.sc;
   kick();
 });
-hWorld.addEventListener('pointerup', () => { if (hDrag) { hDrag.f.el.classList.remove('drag'); hDrag = null; hKey = ''; kick(); } });
+const hEnd = () => { hSwipe = null; if (hDrag) { hDrag.f.el.classList.remove('drag'); hDrag = null; hKey = ''; kick(); } };
+hWorld.addEventListener('pointerup', hEnd); hWorld.addEventListener('pointercancel', hEnd);   // cancel — kad niekas neužstrigtų
 
 /* ═════════ WHY: atsiradimas slenkant ═════════ */
 const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .4 });
