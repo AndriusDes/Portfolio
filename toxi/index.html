@@ -256,7 +256,7 @@
 
   /* ── 6 SCENA: OXI (izoliuotas) ← Track 1 eilutės; vienas knob'as — keli parametrai, vienas invertuotas ── */
 
-  .mp-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:5px; padding:8px; }
+  .mp-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:5px; padding:8px; touch-action:pan-y; }   /* lietimas: į šonus — žalias knob'as */
   .mp-cell { height:62px; border:1px solid var(--line2); padding:5px 6px 6px; display:flex; flex-direction:column; justify-content:space-between; font-size:9px; cursor:ns-resize; color:#3a3a3a; }
   .mp-cell.has { color:#cfcfcf; border-color:#3a3a3a; }
   .mp-cell.act { border-color:var(--acc); }
@@ -297,7 +297,7 @@
   .sq7-lab span { color:#cfcfcf; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sq7-lab b { font-weight:normal; color:var(--dim); cursor:pointer; font-size:9px; }
   .sq7-lab b:hover { color:var(--fg); }
-  .sq7-steps { display:grid; grid-template-columns:repeat(8, 1fr); gap:3px; height:34px; cursor:ns-resize; }
+  .sq7-steps { display:grid; grid-template-columns:repeat(8, 1fr); gap:3px; height:34px; cursor:ns-resize; touch-action:none; }   /* lietimas: žingsniai — redaguojami, ne slenkami */
   .sq7-steps i { position:relative; border:1px solid var(--line2); display:block; }
   .sq7-steps i b { position:absolute; left:1px; right:1px; background:var(--c); opacity:.75; }
   .sq7-steps i.ph { border-color:#bdbdbd; }
@@ -309,7 +309,7 @@
   .sq7-chips { display:flex; gap:6px; margin-bottom:8px; }
   .sq7-chips b { font-weight:normal; font-size:9px; line-height:16px; padding:0 6px; border:1px solid #2a2a2a; color:var(--dim); cursor:pointer; }
   .sq7-chips b.sel { color:var(--c); border-color:var(--c); }
-  #sq7Svg { display:block; width:100%; height:150px; cursor:crosshair; background:#070707; }
+  #sq7Svg { display:block; width:100%; height:150px; cursor:crosshair; background:#070707; touch-action:none; }
   #sq7Svg .grid { stroke:#1c1c1c; } #sq7Svg .mid { stroke:#222; stroke-dasharray:1 3; }
   #sq7Svg path.ln { fill:none; stroke-width:1.2; vector-effect:non-scaling-stroke; opacity:.55; } #sq7Svg path.ln.sel { stroke-width:2; opacity:1; }
   #sq7Svg circle { fill:none; stroke-width:1.5; vector-effect:non-scaling-stroke; }
@@ -423,9 +423,9 @@
 <section id="flow">
   <div id="flowStage">
     <svg id="mpWires"></svg>
-    <div class="fl-cap" data-s="0"><h2>Pick what you need</h2><p><span class="g-fine">Drag S-4 parameters onto a track.</span><span class="g-touch">Tap S-4 parameters to add them to a track.</span> Every parameter is its own CC.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="fl-cap" data-s="0"><h2>Pick what you need</h2><p><span class="g-fine">Drag S-4 parameters onto a track.</span><span class="g-touch">S-4 parameters go onto a track.</span> Every parameter is its own CC.</p><button class="again" type="button">↺ Show me again</button></div>
     <div class="fl-cap" data-s="1"><h2>Give it to a knob</h2><p>One knob can move several. Invert one and they move apart.</p><button class="again" type="button">↺ Show me again</button></div>
-    <div class="fl-cap" data-s="2"><h2>Let it move</h2><p>Drop a parameter onto the sequencer. Glide carries the value from step to step.</p><button class="again" type="button">↺ Show me again</button></div>
+    <div class="fl-cap" data-s="2"><h2>Let it move</h2><p><span class="g-fine">Drop a parameter onto the sequencer.</span><span class="g-touch">Set the steps or draw the curve.</span> Glide carries the value from step to step.</p><button class="again" type="button">↺ Show me again</button></div>
     <div class="fl-cap" data-s="3"><h2>From loop to song</h2><p>Each card is a part with its own steps, length and mutes. Click one: it takes over on the next bar.</p><button class="again" type="button">↺ Show me again</button></div>
     <div class="pane lb-side fo" id="foLib"><div class="ph"><span>Library</span><span>S-4</span></div><div class="lb-list" id="lbList"></div></div>
     <div class="pane lb-track fo" id="lbTrack"><div class="ph"><span>Track 1</span><span>CH1</span></div><div class="lb-rows" id="lbRows"></div></div>
@@ -1170,14 +1170,14 @@ function onScroll() {
 let drag = null;
 svg.addEventListener('pointerdown', e => {
   const k = e.target.closest('[data-d="oxi"].k'), c = e.target.closest('.cell'), pl = e.target.closest('.play');
-  if (pl) { playUser = !playing; setPlay(!playing); cueDone(2); return; }
-  // Telefone — visas įrenginys yra paspaudimo zona: braukimas į šonus bet kur ant OXI / laptop'o / S-4 suka geltoną (aktyvų) knob'ą
+  // Telefone — visas įrenginys yra paspaudimo zona: braukimas į šonus bet kur ant OXI / laptop'o / S-4 suka geltoną (aktyvų) knob'ą;
+  // paprastas bakstelėjimas ant S-4 — Play / Stop (perjungiama atleidus, ne palietus — slinkimo pradžia nieko neperjungia)
   if (e.pointerType === 'touch') {
     const dv = e.target.closest('[data-dev]'); if (!dv) return;
     const i = act >= 0 ? act : 0, src = dv.dataset.dev === 'oxi' ? 'oxi' : 'toxi';
-    drag = { i, src, x: e.clientX, y: e.clientY, v: VAL[i], tch: true }; cueDone(src === 'oxi' ? 0 : 1);
-    touch(i, VAL[i], src); return;
+    drag = { i, src, x: e.clientX, y: e.clientY, v: VAL[i], tch: true, moved: false, dev: dv.dataset.dev }; return;
   }
+  if (pl) { playUser = !playing; setPlay(!playing); cueDone(2); return; }
   if (!k && !c) return;
   const i = k ? +k.dataset.k : +c.dataset.c;
   drag = { i, src: k ? 'oxi' : 'toxi', x: e.clientX, y: e.clientY, v: VAL[i] }; cueDone(k ? 0 : 1);
@@ -1185,11 +1185,18 @@ svg.addEventListener('pointerdown', e => {
   touch(i, VAL[i], drag.src);
 });
 addEventListener('pointermove', e => {
-  if (drag) { touch(drag.i, drag.v + (drag.tch ? e.clientX - drag.x : drag.y - e.clientY) * .7, drag.src); return; }   // telefone — braukimas į šonus, pele — aukštyn/žemyn
+  if (drag) {   // telefone — braukimas į šonus (nuo 8 px — kad bakstelėjimas nieko nepasuktų), pele — aukštyn/žemyn
+    if (drag.tch && !drag.moved) { if (Math.abs(e.clientX - drag.x) < 8) return; drag.moved = true; cueDone(drag.src === 'oxi' ? 0 : 1); }
+    touch(drag.i, drag.v + (drag.tch ? e.clientX - drag.x : drag.y - e.clientY) * .7, drag.src); return;
+  }
   if (e.pointerType === 'touch') return;
   tx = e.clientX / innerWidth * 2 - 1; ty = e.clientY / innerHeight * 2 - 1; if (inView) kick();
 }, { passive: true });
-const storyEnd = () => { if (drag) { userUntil = performance.now() + 2500; } drag = null; document.body.classList.remove('dragging'); kick(); };
+const storyEnd = e => {
+  if (drag && drag.tch && !drag.moved && drag.dev === 's4' && e.type === 'pointerup') { playUser = !playing; setPlay(!playing); cueDone(2); }   // bakstelėjimas ant S-4
+  else if (drag) userUntil = performance.now() + 2500;
+  drag = null; document.body.classList.remove('dragging'); kick();
+};
 addEventListener('pointerup', storyEnd); addEventListener('pointercancel', storyEnd);
 // Paryškėja tik įrenginys po pele
 svg.addEventListener('pointerover', e => { const d = e.target.closest('[data-dev]'); DEVS.forEach(D => D.g.classList.toggle('hot', D.g === d)); });
@@ -1262,11 +1269,11 @@ const TRACK1 = (() => {
   const over = (x, y) => { const r = track.getBoundingClientRect(); return x > r.left && x < r.right && y > r.top && y < r.bottom; };
   list.addEventListener('click', e => { const c = e.target.closest('.lb-cat'); if (!c) return; OPEN.has(c.dataset.dev) ? OPEN.delete(c.dataset.dev) : OPEN.add(c.dataset.dev); renderLib(); });
   list.addEventListener('dblclick', e => { const it = e.target.closest('.lb-item'); if (it) add(+it.dataset.cc); });
-  // Telefone — bakstelėjimas: parametras prisideda prie Track (tempimas per ekraną kovotų su slinkimu); sąrašas slenka pirštu
+  // Telefone — tik žiūrima: parametrus įtempia vaiduoklis; sąrašas slenka pirštu
   let tap = null;
   list.addEventListener('pointerdown', e => {
     const it = e.target.closest('.lb-item'); if (!it) return;
-    if (e.pointerType === 'touch') { tap = { cc: +it.dataset.cc, x0: e.clientX, y0: e.clientY }; return; }
+    if (e.pointerType === 'touch') return;
     const p = BY[+it.dataset.cc]; drag = { cc: p.cc, moved: false, x0: e.clientX, y0: e.clientY };
     ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`;
     ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
@@ -1280,7 +1287,6 @@ const TRACK1 = (() => {
     track.classList.toggle('over', over(e.clientX, e.clientY));
   });
   list.addEventListener('pointerup', e => {
-    if (tap) { if (Math.hypot(e.clientX - tap.x0, e.clientY - tap.y0) < 10) add(tap.cc); tap = null; return; }
     if (!drag) return;
     if (drag.moved && over(e.clientX, e.clientY)) add(drag.cc);
     ghost.style.opacity = 0; track.classList.remove('over'); drag = null;
@@ -1363,32 +1369,37 @@ const SC6 = (() => {
   let drag = null;
   const cellAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest && el.closest('.mp-cell'); };
   out.addEventListener('pointerdown', e => {
-    if (!vis || e.target.closest('.x')) return;   // 5 žingsnyje eilutės netempiamos ant OXI (× — šalina)
+    if (!vis || e.target.closest('.x') || e.pointerType === 'touch') return;   // 5 žingsnyje eilutės netempiamos ant OXI (× — šalina); telefone — netempiamos
     const r = e.target.closest('.lb-row'); if (!r) return;
     const p = BY[+r.dataset.cc]; drag = { type: 'row', cc: p.cc, x0: e.clientX, y0: e.clientY, moved: false };
     ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`; ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
     cap(r, e.pointerId); e.preventDefault();
   });
   grid.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') {   // telefone — visa OXI kortelė: braukimas į šonus suka žalią (aktyvų) knob'ą
+      drag = { type: 'knob', k: act, y0: e.clientY, x0: e.clientX, v: KV[act], moved: false, tch: true }; userUntil = Infinity; return;
+    }
     const c = e.target.closest('.mp-cell'); if (!c) return;
     drag = { type: 'knob', k: +c.dataset.k, y0: e.clientY, x0: e.clientX, v: KV[+c.dataset.k], moved: false, label: e.target.closest('.mp-n span[data-cc]') };
     cap(c, e.pointerId); e.preventDefault(); userUntil = Infinity;
   });
   sec.addEventListener('pointermove', e => {
     if (!drag) return;
+    if (drag.tch) { if (!drag.moved && Math.abs(e.clientX - drag.x0) < 8) return; drag.moved = true; turn(drag.k, drag.v + (e.clientX - drag.x0) * .7); drawWires(); return; }
     if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) { drag.moved = true; if (drag.type === 'row') ghost.style.opacity = 1; }
     if (drag.type === 'row') {
       ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
       grid.querySelectorAll('.mp-cell').forEach(c => c.classList.remove('over')); const c = cellAt(e.clientX, e.clientY); if (c) c.classList.add('over');
     } else if (drag.moved) { turn(drag.k, drag.v + (drag.y0 - e.clientY) * .7); drawWires(); }
   });
+  sec.addEventListener('pointercancel', () => { if (!drag) return; ghost.style.opacity = 0; grid.querySelectorAll('.mp-cell').forEach(c => c.classList.remove('over')); drag = null; userUntil = performance.now() + 2500; });   // slinkimas perėmė
   sec.addEventListener('pointerup', e => {
     if (!drag) return;
     if (drag.type === 'row') {
       ghost.style.opacity = 0; grid.querySelectorAll('.mp-cell').forEach(c => c.classList.remove('over'));
       const c = drag.moved && cellAt(e.clientX, e.clientY); if (c) map(+c.dataset.k, drag.cc);
     } else {
-      if (!drag.moved && drag.label) { const cc = +drag.label.dataset.cc, m = MAP[drag.k].find(q => q[0] === cc); m[1] = !m[1]; save(); render(); }   // invert
+      if (!drag.moved && drag.label && !drag.tch) { const cc = +drag.label.dataset.cc, m = MAP[drag.k].find(q => q[0] === cc); m[1] = !m[1]; save(); render(); }   // invert (telefone — ne)
       userUntil = performance.now() + 2500; kick();
     }
     drag = null;
@@ -1538,7 +1549,7 @@ const SEQ7 = (() => {
   // Tempimas: Track 1 eilutė → SEQ (nauja eilutė); piešimas per stulpelius; kreivė; ×
   let drag = null, touched = false;
   out.addEventListener('pointerdown', e => {
-    if (!vis || e.target.closest('.x')) return;   // tik 7–8 žingsnyje (6 žingsnyje eilutės keliauja ant OXI)
+    if (!vis || e.target.closest('.x') || e.pointerType === 'touch') return;   // tik 7–8 žingsnyje (6 žingsnyje eilutės keliauja ant OXI); telefone — eilutes įtempia vaiduoklis
     const r = e.target.closest('.lb-row'); if (!r) return;
     const p = BY[+r.dataset.cc]; drag = { type: 'row', cc: p.cc, x0: e.clientX, y0: e.clientY, moved: false };
     ghost.classList.remove('fly'); ghost.textContent = `${p.dev} · ${p.n}`; ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
@@ -1560,6 +1571,7 @@ const SEQ7 = (() => {
   chips.addEventListener('click', e => { const b = e.target.closest('b'); if (b) { brush = +b.dataset.cc; renderDraw(); drawMarks(); } });
   svgD.addEventListener('pointerdown', e => { drag = { type: 'draw' }; cap(svgD, e.pointerId); paintDraw(e.clientX, e.clientY); e.preventDefault(); });
   lanesEl.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch' && !e.target.closest('.sq7-steps')) return;   // telefone — tik žingsnių reikšmės (kreivė, × — ne)
     if (e.target.closest('[data-cv]')) { const l = laneOf(+e.target.closest('.sq7-lane').dataset.cc); l.cv = CVS[(CVS.indexOf(l.cv) + 1) % CVS.length]; e.target.textContent = l.cv; return; }
     if (e.target.closest('.sq7-x')) { const cc = +e.target.closest('.sq7-lane').dataset.cc; lanes = lanes.filter(l => l.cc !== cc); render(); changed(); return; }
     if (!e.target.closest('.sq7-steps')) return;
@@ -1573,6 +1585,7 @@ const SEQ7 = (() => {
     ghost.style.transform = `translate(${e.clientX + 10}px, ${e.clientY - 12}px)`;
     const tgt = mode === 'draw' ? drawEl : lanesEl, r = tgt.getBoundingClientRect(); tgt.classList.toggle('over', e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom);
   });
+  sec.addEventListener('pointercancel', () => { if (drag && drag.type === 'row') { ghost.style.opacity = 0; lanesEl.classList.remove('over'); drawEl.classList.remove('over'); } drag = null; });
   sec.addEventListener('pointerup', () => {
     if (drag && drag.type === 'row') {
       ghost.style.opacity = 0;
